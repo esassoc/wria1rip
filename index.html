@@ -270,7 +270,6 @@
         { name: 'Scoring Lab', id: 'scoring_lab', desc: 'Interactive scenario comparison tool. Pick two riparian scenarios and adjust forest scoring weights and curves in real time to see how they affect Restoration Priority scores.' },
         { name: 'Bank Explorer', id: 'bank_explorer', desc: 'Search any of the 24,000+ BIDs by ID, stream name, or SR Zone. View per-BID landcover grids, score breakdowns, tier criteria, zone tables, and solar push context.' },
         { name: 'Solar Comparison', id: 'solar_compare', desc: 'Explore the solar radiation push mechanism. Adjust the max push and curve exponent to see how solar exposure modifies RP scores across the watershed.' },
-        { name: 'Bivariate Analysis', id: 'bivariate', desc: 'Scatterplot and heatmap of two selected variables. Examine correlations between any pair of scoring metrics, solar, slope, composition, and more.' },
         { name: 'BID Query', id: 'bid_query', desc: 'Filter and rank BIDs by score range, priority tier, SR zone, fish status, land manager, and more. Export filtered results to CSV or jump directly to a BID in the Bank Explorer.' },
         { name: 'Model Reference', id: 'model_ref', desc: 'Random Forest model performance — feature importance (MDI and MDA), confusion matrix, precision/recall by class, OOB convergence, and training evolution across iterative feature screening.' },
       ];
@@ -1983,7 +1982,7 @@
           </div>
 
           <div className="rounded-lg p-3 mb-6 text-sm" style={{ background: '#e8f6fa', border: '1px solid #66CAD8', color: '#004562' }}>
-            Manager categories derived from comma-separated ManagerName field. BIDs with multiple managers counted once per category. Private/Unknown = null ManagerName.
+            Manager categories derived from comma-separated PADUS_Manager field (USGS Protected Areas Database). BIDs with multiple managers counted once per category. Private/Unknown = null PADUS_Manager.
           </div>
 
           <SectionTitle>Category Comparison (Mean RP)</SectionTitle>
@@ -2053,7 +2052,7 @@
                     </div>
                   )}
                   {expanded === cat && codes.length === 0 && (
-                    <div className="px-3 pb-3 text-xs text-gray-400">No individual manager codes (null ManagerName).</div>
+                    <div className="px-3 pb-3 text-xs text-gray-400">No individual manager codes (null PADUS_Manager).</div>
                   )}
                 </div>
               );
@@ -2541,24 +2540,29 @@
 
       const GROUP_BY_OPTIONS = [
         { id: 'tier', label: 'Priority Tier', dataKey: 'by_tier' },
-        { id: 'chk',  label: 'Chinook', dataKey: 'by_chinook' },
-        { id: 'fish', label: 'Temp Impaired', dataKey: 'by_temp' },
+        { id: 'chk',  label: 'Early Chinook', dataKey: 'by_chinook' },
+        { id: 'fish', label: 'Fish Access', dataKey: 'by_temp' },
         { id: 'zone', label: 'SR Zone', dataKey: 'by_zone' },
         { id: 'zon',  label: 'Zoning', dataKey: 'by_zoning' },
-        { id: 'own',  label: 'Ownership', dataKey: 'by_ownership' },
+        { id: 'own',  label: 'Owner', dataKey: 'by_ownership' },
         { id: 'bfw',  label: 'Stream Size', dataKey: 'by_bfw' },
         { id: 'hmz',  label: 'HMZ', dataKey: 'by_hmz' },
       ];
 
-      // --- Filter state ---
+      // --- Categorical filter state (defaults: all selected) ---
       const [selZone, setSelZone] = React.useState(() => new Set(comp.sr_zone_labels || []));
       const [selTier, setSelTier] = React.useState(() => new Set(comp.tier_labels || []));
       const [selChk, setSelChk]   = React.useState(() => new Set(comp.chk_labels || []));
-      const [selFish, setSelFish] = React.useState(() => new Set(comp.fish_labels || []));
+      const [selFish, setSelFish] = React.useState(() => new Set(comp.fish_access_labels || []));
       const [selZon, setSelZon]   = React.useState(() => new Set(comp.zon_labels || []));
       const [selOwn, setSelOwn]   = React.useState(() => new Set(comp.own_labels || []));
       const [selBfw, setSelBfw]   = React.useState(() => new Set(comp.bfw_labels || []));
       const [selHmz, setSelHmz]   = React.useState(() => new Set(comp.hmz_labels || []));
+      const [selSal, setSelSal]   = React.useState(() => new Set(comp.sal_labels || []));
+      const [selSpecies, setSelSpecies] = React.useState(() => new Set(comp.species_labels || []));
+      const [selTcat, setSelTcat] = React.useState(() => new Set(comp.tcat_labels || []));
+      const [selFcat, setSelFcat] = React.useState(() => new Set(comp.fcat_labels || []));
+      const [selScat, setSelScat] = React.useState(() => new Set(comp.scat_labels || []));
       // Buffer zone filter: indices 0-4 map to 50,100,300,hmz,hmz300. Index 0 (50ft) always on.
       const [selBufZone, setSelBufZone] = React.useState(() => new Set([0, 1, 2, 3, 4]));
       const bufZoneLabels = comp.buf_zone_labels || ['0–50 ft', '50–100 ft', '100–300 ft', 'HMZ', 'HMZ+300'];
@@ -2567,14 +2571,25 @@
         const next = new Set(selBufZone);
         if (next.has(idx)) {
           next.delete(idx);
-          // If unchecking 300 (idx 2), also uncheck hmz300 (idx 4) if present
         } else {
           next.add(idx);
-          // If checking 300 (idx 2), auto-check 100 (idx 1)
-          if (idx === 2 && !next.has(1)) next.add(1);
+          if (idx === 2 && !next.has(1)) next.add(1); // checking 300 auto-checks 100
         }
         setSelBufZone(next);
       };
+
+      // --- Slider state (full-range defaults match BID Query) ---
+      const [rRPF, setRRPF]   = React.useState([0, 100]);
+      const [rRPA, setRRPA]   = React.useState([0, 100]);
+      const [rComp, setRComp] = React.useState([-1, 1]);
+      const [rCH, setRCH]     = React.useState([0, 300]);
+      const [rSol, setRSol]   = React.useState([0, 12]);
+      const [rSlp, setRSlp]   = React.useState([0, 5]);
+      const [rWet, setRWet]   = React.useState([0, 5]);
+      const [rPF, setRPF]     = React.useState([0, 100]);
+      const [rPS, setRPS]     = React.useState([0, 100]);
+      const [rPH, setRPH]     = React.useState([0, 100]);
+      const [rRest, setRRest] = React.useState([0, 100]);
 
       const toggleItem = (set, setter, item) => {
         const next = new Set(set);
@@ -2585,29 +2600,56 @@
         setter(set.size === labels.length ? new Set() : new Set(labels));
       };
 
-      // --- Parse scatter data (18 values per point: 13 attrs + 5 zone flags) ---
+      // --- Parse scatter data (30 values per point: 13 base + 5 buffer zone flags + 12 new fields) ---
       const scatterPoints = React.useMemo(() => {
         if (!comp.scatter_data) return [];
-        return comp.scatter_data.map(row => ({
-          mean_comp: row[0], std_comp: row[1], pct_forest: row[2], rp_final: row[3],
-          mean_ch: row[10] || 0,
-          zone: (comp.sr_zone_labels || [])[row[4]] || 'Unknown',
-          tier: (comp.tier_labels || [])[row[5]] || 'P5',
-          chk:  (comp.chk_labels  || [])[row[6]] || 'N',
-          fish: (comp.fish_labels || [])[row[7]] || 'N',
-          zon:  (comp.zon_labels  || [])[row[8]] || 'Unknown',
-          own:  (comp.own_labels  || [])[row[9]] || 'Private/Unknown',
-          bfw:  (comp.bfw_labels  || [])[row[11]] || 'Headwater/Ditch',
-          hmz:  (comp.hmz_labels  || [])[row[12]] || 'N',
-          bufZones: [row[13], row[14], row[15], row[16], row[17]], // zone presence flags [50,100,300,hmz,hmz300]
-        }));
+        const speciesLbls = comp.species_labels || [];
+        return comp.scatter_data.map(row => {
+          // Decode 9-bit species mask to label list
+          const mask = row[19] | 0;
+          const speciesList = [];
+          for (let i = 0; i < speciesLbls.length; i++) {
+            if (mask & (1 << i)) speciesList.push(speciesLbls[i]);
+          }
+          const pf = row[27] || 0, ps = row[28] || 0, ph = row[29] || 0;
+          return {
+            mean_comp: row[0], std_comp: row[1], pct_forest: row[2], rp_final: row[3],
+            mean_ch: row[10] || 0,
+            zone: (comp.sr_zone_labels || [])[row[4]] || 'Unknown',
+            tier: (comp.tier_labels || [])[row[5]] || 'P5',
+            chk:  (comp.chk_labels  || [])[row[6]] || 'N',
+            fish: (comp.fish_access_labels || [])[row[7]] || 'gradient',
+            zon:  (comp.zon_labels  || [])[row[8]] || 'Unknown',
+            own:  (comp.own_labels  || [])[row[9]] || 'Private/Unknown',
+            bfw:  (comp.bfw_labels  || [])[row[11]] || 'Headwater/Ditch',
+            hmz:  (comp.hmz_labels  || [])[row[12]] || 'N',
+            bufZones: [row[13], row[14], row[15], row[16], row[17]],
+            sal:  (comp.sal_labels || [])[row[18]] || 'N',
+            speciesList,
+            tcat: (comp.tcat_labels || [])[row[20]] || '',
+            fcat: (comp.fcat_labels || [])[row[21]] || '',
+            scat: (comp.scat_labels || [])[row[22]] || '',
+            solar_push: row[23] || 0,
+            slope_push: row[24] || 0,
+            wetland_push: row[25] || 0,
+            rp_area_pctile: row[26] || 0,
+            pf, ps, ph,
+            rest: Math.min(100, Math.round(pf + ps + ph)),
+          };
+        });
       }, [comp]);
 
       // --- Deferred filtering (Apply button pattern) ---
       const buildCompSnapshot = () => ({
         selZone: new Set(selZone), selTier: new Set(selTier), selChk: new Set(selChk),
         selFish: new Set(selFish), selZon: new Set(selZon), selOwn: new Set(selOwn),
-        selBfw: new Set(selBfw), selHmz: new Set(selHmz), selBufZone: new Set(selBufZone),
+        selBfw: new Set(selBfw), selHmz: new Set(selHmz),
+        selSal: new Set(selSal), selSpecies: new Set(selSpecies),
+        selTcat: new Set(selTcat), selFcat: new Set(selFcat), selScat: new Set(selScat),
+        selBufZone: new Set(selBufZone),
+        rRPF: [...rRPF], rRPA: [...rRPA], rComp: [...rComp], rCH: [...rCH],
+        rSol: [...rSol], rSlp: [...rSlp], rWet: [...rWet],
+        rPF: [...rPF], rPS: [...rPS], rPH: [...rPH], rRest: [...rRest],
       });
       const [compApplied, setCompApplied] = React.useState(() => buildCompSnapshot());
       const applyCompFilters = () => setCompApplied(buildCompSnapshot());
@@ -2615,33 +2657,122 @@
       const compFiltersDirty = React.useMemo(() => {
         const f = compApplied;
         const setEq = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
+        const rngEq = (a, b) => a[0] === b[0] && a[1] === b[1];
         return !(setEq(selZone, f.selZone) && setEq(selTier, f.selTier) && setEq(selChk, f.selChk) &&
           setEq(selFish, f.selFish) && setEq(selZon, f.selZon) && setEq(selOwn, f.selOwn) &&
-          setEq(selBfw, f.selBfw) && setEq(selHmz, f.selHmz) && setEq(selBufZone, f.selBufZone));
-      }, [compApplied, selZone, selTier, selChk, selFish, selZon, selOwn, selBfw, selHmz, selBufZone]);
+          setEq(selBfw, f.selBfw) && setEq(selHmz, f.selHmz) &&
+          setEq(selSal, f.selSal) && setEq(selSpecies, f.selSpecies) &&
+          setEq(selTcat, f.selTcat) && setEq(selFcat, f.selFcat) && setEq(selScat, f.selScat) &&
+          setEq(selBufZone, f.selBufZone) &&
+          rngEq(rRPF, f.rRPF) && rngEq(rRPA, f.rRPA) && rngEq(rComp, f.rComp) && rngEq(rCH, f.rCH) &&
+          rngEq(rSol, f.rSol) && rngEq(rSlp, f.rSlp) && rngEq(rWet, f.rWet) &&
+          rngEq(rPF, f.rPF) && rngEq(rPS, f.rPS) && rngEq(rPH, f.rPH) && rngEq(rRest, f.rRest));
+      }, [compApplied, selZone, selTier, selChk, selFish, selZon, selOwn, selBfw, selHmz,
+          selSal, selSpecies, selTcat, selFcat, selScat, selBufZone,
+          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest]);
 
       const filteredPoints = React.useMemo(() => {
         const f = compApplied;
+        const inRange = (v, r) => v >= r[0] && v <= r[1];
+        // Species filter (matches BID Query): when all species selected, pass everything;
+        // when subset, only BIDs whose speciesList intersects the selection pass (no-species BIDs fail).
+        const allSpeciesSelected = f.selSpecies.size === (comp.species_labels?.length || 0);
+        const speciesPass = (lst) => {
+          if (allSpeciesSelected) return true;
+          if (f.selSpecies.size === 0) return false;
+          for (const s of lst) if (f.selSpecies.has(s)) return true;
+          return false;
+        };
+        // ECY cat filter (matches BID Query): when all visible cats selected, pass everything (incl. non-impaired).
+        // When subset, restrict to BIDs whose cat is in the selection — non-impaired (cat='') excluded.
+        const catPass = (val, sel, allLen) => {
+          if (sel.size === allLen) return true;
+          return sel.has(val);
+        };
+        const tcatLen = comp.tcat_labels?.length || 0;
+        const fcatLen = comp.fcat_labels?.length || 0;
+        const scatLen = comp.scat_labels?.length || 0;
         return scatterPoints.filter(p =>
           f.selZone.has(p.zone) && f.selTier.has(p.tier) && f.selChk.has(p.chk) &&
           f.selFish.has(p.fish) && f.selZon.has(p.zon) && f.selOwn.has(p.own) &&
           f.selBfw.has(p.bfw) && f.selHmz.has(p.hmz) &&
-          p.bufZones.some((flag, i) => flag && f.selBufZone.has(i))
+          f.selSal.has(p.sal) && speciesPass(p.speciesList) &&
+          catPass(p.tcat, f.selTcat, tcatLen) && catPass(p.fcat, f.selFcat, fcatLen) && catPass(p.scat, f.selScat, scatLen) &&
+          p.bufZones.some((flag, i) => flag && f.selBufZone.has(i)) &&
+          inRange(p.rp_final, f.rRPF) && inRange(p.rp_area_pctile, f.rRPA) &&
+          inRange(p.mean_comp, f.rComp) && inRange(p.mean_ch, f.rCH) &&
+          inRange(p.solar_push, f.rSol) && inRange(p.slope_push, f.rSlp) && inRange(p.wetland_push, f.rWet) &&
+          inRange(p.pf, f.rPF) && inRange(p.ps, f.rPS) && inRange(p.ph, f.rPH) && inRange(p.rest, f.rRest)
         );
       }, [scatterPoints, compApplied]);
+
+      // --- Per-section active filter badge counts ---
+      // A categorical filter is "active" when it has fewer items selected than its full label set.
+      // A slider is "active" when its range differs from the default min/max.
+      // Buffer Zones is active when not all 5 indices are selected.
+      const compBadges = React.useMemo(() => {
+        const cat = (sel, labels) => sel.size !== (labels?.length || 0) ? 1 : 0;
+        const rng = (val, lo, hi) => (val[0] !== lo || val[1] !== hi) ? 1 : 0;
+        return {
+          metrics: cat(selTier, comp.tier_labels) +
+                   rng(rRPF, 0, 100) + rng(rRPA, 0, 100) + rng(rComp, -1, 1) +
+                   rng(rCH, 0, 300) + rng(rSol, 0, 12) + rng(rSlp, 0, 5) + rng(rWet, 0, 5) +
+                   rng(rPF, 0, 100) + rng(rPS, 0, 100) + rng(rPH, 0, 100) + rng(rRest, 0, 100),
+          fishSalmon: cat(selChk, comp.chk_labels) + cat(selFish, comp.fish_access_labels) +
+                      cat(selSal, comp.sal_labels) + cat(selSpecies, comp.species_labels),
+          impairment: cat(selTcat, comp.tcat_labels) + cat(selFcat, comp.fcat_labels) + cat(selScat, comp.scat_labels),
+          river: (selBufZone.size !== 5 ? 1 : 0) + cat(selHmz, comp.hmz_labels) +
+                 cat(selBfw, comp.bfw_labels) + cat(selZone, comp.sr_zone_labels),
+          admin: cat(selOwn, comp.own_labels) + cat(selZon, comp.zon_labels),
+        };
+      }, [comp, selTier, selChk, selFish, selSal, selSpecies, selTcat, selFcat, selScat,
+          selHmz, selBfw, selZone, selOwn, selZon, selBufZone,
+          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest]);
+
+      // --- Reset all Composition filters to defaults & apply immediately ---
+      const resetAllComp = () => {
+        const defaults = {
+          selZone: new Set(comp.sr_zone_labels || []),
+          selTier: new Set(comp.tier_labels || []),
+          selChk:  new Set(comp.chk_labels || []),
+          selFish: new Set(comp.fish_access_labels || []),
+          selZon:  new Set(comp.zon_labels || []),
+          selOwn:  new Set(comp.own_labels || []),
+          selBfw:  new Set(comp.bfw_labels || []),
+          selHmz:  new Set(comp.hmz_labels || []),
+          selSal:  new Set(comp.sal_labels || []),
+          selSpecies: new Set(comp.species_labels || []),
+          selTcat: new Set(comp.tcat_labels || []),
+          selFcat: new Set(comp.fcat_labels || []),
+          selScat: new Set(comp.scat_labels || []),
+          selBufZone: new Set([0, 1, 2, 3, 4]),
+          rRPF: [0, 100], rRPA: [0, 100], rComp: [-1, 1], rCH: [0, 300],
+          rSol: [0, 12], rSlp: [0, 5], rWet: [0, 5],
+          rPF: [0, 100], rPS: [0, 100], rPH: [0, 100], rRest: [0, 100],
+        };
+        setSelZone(defaults.selZone); setSelTier(defaults.selTier); setSelChk(defaults.selChk);
+        setSelFish(defaults.selFish); setSelZon(defaults.selZon); setSelOwn(defaults.selOwn);
+        setSelBfw(defaults.selBfw); setSelHmz(defaults.selHmz);
+        setSelSal(defaults.selSal); setSelSpecies(defaults.selSpecies);
+        setSelTcat(defaults.selTcat); setSelFcat(defaults.selFcat); setSelScat(defaults.selScat);
+        setSelBufZone(defaults.selBufZone);
+        setRRPF(defaults.rRPF); setRRPA(defaults.rRPA); setRComp(defaults.rComp); setRCH(defaults.rCH);
+        setRSol(defaults.rSol); setRSlp(defaults.rSlp); setRWet(defaults.rWet);
+        setRPF(defaults.rPF); setRPS(defaults.rPS); setRPH(defaults.rPH); setRRest(defaults.rRest);
+        setCompApplied(defaults);
+      };
 
       // --- Composition class labels & colors ---
       const classLabels = comp.comp_class_labels || [];
       const classColors = comp.comp_class_colors || [];
 
-      // --- FilterGroup (reuse same pattern as bivariate) ---
+      // --- FilterGroup ---
+      // `highlighted` only controls the "(grouping)" badge — it never dims the filter.
       function FilterGroup({ title, labels, colors, selected, setSelected, highlighted, badge }) {
-        const dimmed = highlighted === false;
         return (
-          <div style={{ marginBottom: 4, opacity: dimmed ? 0.45 : 1, transition: 'opacity 0.2s' }}>
+          <div style={{ marginBottom: 4 }}>
             <div className="flex items-center gap-1 mb-1">
-              <span className={dimmed ? 'text-xs font-semibold text-gray-400' : 'text-xs font-semibold text-gray-600'}
-                style={{ minWidth: 60 }}>
+              <span className="text-xs font-semibold text-gray-600" style={{ minWidth: 60 }}>
                 {title}
                 {highlighted && <span style={{ fontSize: 9, marginLeft: 4, color: '#1193BA' }}>({badge || 'active'})</span>}
               </span>
@@ -2660,8 +2791,8 @@
                     className="text-xs px-1.5 py-0.5 rounded border"
                     style={{
                       background: on ? c : 'transparent',
-                      color: on ? '#fff' : (dimmed ? '#9ca3af' : c),
-                      borderColor: on ? c : (dimmed ? '#d1d5db' : c),
+                      color: on ? '#fff' : c,
+                      borderColor: c,
                       fontWeight: on ? 600 : 400,
                       opacity: on ? 1 : 0.6,
                       fontSize: 10,
@@ -2816,7 +2947,7 @@
               const COMP_BFW_COLORS = { 'Headwater/Ditch': '#66CAD8', 'Small Stream': '#1193BA', 'Medium Stream': '#0B7A9E', 'Large Stream': '#004562', 'Mainstem': '#002D42' };
               const COMP_HMZ_COLORS = { 'Y': '#f59e0b', 'N': '#6b7280' };
               const COLOR_MAPS = { zone: SR_ZONE_COLORS, tier: TIER_COLORS, chk: CHINOOK_COLORS,
-                fish: TEMP_COLORS, zon: ZONING_COLORS, own: MANAGER_CAT_COLORS,
+                fish: FISH_COLORS, zon: ZONING_COLORS, own: MANAGER_CAT_COLORS,
                 bfw: COMP_BFW_COLORS, hmz: COMP_HMZ_COLORS };
               const colorMap = COLOR_MAPS[groupBy] || SR_ZONE_COLORS;
               // Group filteredPoints by current groupBy for colored series
@@ -2931,57 +3062,84 @@
             </div>
           </div>
 
-          {/* Filters */}
-          <details open className="bg-white border rounded-lg p-3">
-            <summary className="text-sm font-semibold text-gray-700 cursor-pointer mb-2">Filters</summary>
-            <p className="text-xs text-gray-400 mb-2">Toggle to include/exclude BIDs. Filters are AND-combined. Click <b>Apply</b> to update charts. Use <b>Group by</b> below to change grouping.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1">
-              {/* Col 1: Priority / Chinook / Temp */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div>
-                  {comp.tier_labels && <FilterGroup title="Priority" labels={comp.tier_labels}
-                    colors={TIER_COLORS} selected={selTier} setSelected={setSelTier}
-                    highlighted={groupBy === 'tier'}
-                    badge={groupBy === 'tier' ? 'grouping' : undefined} />}
-                </div>
-                <div style={{ marginLeft: 10 }}>
-                  {comp.chk_labels && <FilterGroup title="Chinook" labels={comp.chk_labels}
-                    colors={CHINOOK_COLORS} selected={selChk} setSelected={setSelChk}
-                    highlighted={groupBy === 'chk'}
-                    badge={groupBy === 'chk' ? 'grouping' : undefined} />}
-                </div>
-                <div style={{ marginLeft: 20 }}>
-                  {comp.fish_labels && <FilterGroup title="Temp Impaired" labels={comp.fish_labels}
-                    colors={TEMP_COLORS} selected={selFish} setSelected={setSelFish}
-                    highlighted={groupBy === 'fish'}
-                    badge={groupBy === 'fish' ? 'grouping' : undefined} />}
+          {/* Filters panel \u2014 grouped collapsible sections (mirrors BID Query layout) */}
+          <div className="bg-white rounded-lg shadow p-3">
+
+            {/* Section 1: Restoration Metrics (default open) */}
+            <CollapsibleSection title="Restoration Metrics" defaultOpen={true} badge={compBadges.metrics}>
+              <div style={{ marginBottom: 8 }}>
+                {comp.tier_labels && <FilterGroup title="Priority" labels={comp.tier_labels}
+                  colors={TIER_COLORS} selected={selTier} setSelected={setSelTier}
+                  highlighted={groupBy === 'tier'}
+                  badge={groupBy === 'tier' ? 'grouping' : undefined} />}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
+                <DualRangeSlider label="RP Final" min={0} max={100} step={1} value={rRPF} onChange={setRRPF} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Area RP %ile" min={0} max={100} step={1} value={rRPA} onChange={setRRPA} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Composition" min={-1} max={1} step={0.05} value={rComp} onChange={setRComp} fmt={v => v.toFixed(2)} />
+                <DualRangeSlider label="Canopy Ht (ft)" min={0} max={300} step={5} value={rCH} onChange={setRCH} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Solar Push" min={0} max={12} step={0.5} value={rSol} onChange={setRSol} fmt={v => v.toFixed(1)} />
+                <DualRangeSlider label="Slope Push" min={0} max={5} step={0.25} value={rSlp} onChange={setRSlp} fmt={v => v.toFixed(1)} />
+                <DualRangeSlider label="Wetland Push" min={0} max={5} step={0.25} value={rWet} onChange={setRWet} fmt={v => v.toFixed(1)} />
+                <DualRangeSlider label="% Forest" min={0} max={100} step={1} value={rPF} onChange={setRPF} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="% Shrub" min={0} max={100} step={1} value={rPS} onChange={setRPS} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="% Herb/Ground" min={0} max={100} step={1} value={rPH} onChange={setRPH} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="% Restorable" min={0} max={100} step={1} value={rRest} onChange={setRRest} fmt={v => v.toFixed(0)} />
+              </div>
+            </CollapsibleSection>
+
+            {/* Section 2: Fish / Salmon (default closed) */}
+            <CollapsibleSection title="Fish / Salmon" defaultOpen={false} badge={compBadges.fishSalmon}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+                {comp.chk_labels && <FilterGroup title="Early Chinook" labels={comp.chk_labels}
+                  colors={CHINOOK_COLORS} selected={selChk} setSelected={setSelChk}
+                  highlighted={groupBy === 'chk'}
+                  badge={groupBy === 'chk' ? 'grouping' : undefined} />}
+                {comp.fish_access_labels && <FilterGroup title="Fish Access" labels={comp.fish_access_labels}
+                  colors={FISH_COLORS} selected={selFish} setSelected={setSelFish}
+                  highlighted={groupBy === 'fish'}
+                  badge={groupBy === 'fish' ? 'grouping' : undefined} />}
+                {comp.sal_labels && <FilterGroup title="Salmon Present" labels={comp.sal_labels}
+                  colors={{ 'Y': '#dc2626', 'N': '#6b7280' }}
+                  selected={selSal} setSelected={setSelSal} />}
+                <div className="md:col-span-2">
+                  {comp.species_labels && <FilterGroup title="Salmon Species" labels={comp.species_labels} colors={{
+                    'Spring Chinook': '#dc2626', 'Fall Chinook': '#ef4444', 'Coho': '#f97316',
+                    'Summer Steelhead': '#eab308', 'Winter Steelhead': '#84cc16',
+                    'Fall Chum': '#10b981', 'Pink (Odd Year)': '#06b6d4',
+                    'Sockeye': '#0ea5e9', 'Dolly Varden / Bull Trout': '#8b5cf6'
+                  }} selected={selSpecies} setSelected={setSelSpecies} />}
                 </div>
               </div>
-              {/* Col 2: Stream Size + HMZ */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            </CollapsibleSection>
+
+            {/* Section 3: Impairment (default closed) */}
+            <CollapsibleSection title="Impairment" defaultOpen={false} badge={compBadges.impairment}>
+              <div className="grid grid-cols-1 gap-y-2">
+                {comp.tcat_labels && <FilterGroup title="ECY Temperature Impaired Category" labels={comp.tcat_labels}
+                  colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }}
+                  selected={selTcat} setSelected={setSelTcat} />}
+                {comp.fcat_labels && <FilterGroup title="ECY Fecal Impaired Category" labels={comp.fcat_labels}
+                  colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }}
+                  selected={selFcat} setSelected={setSelFcat} />}
+                {comp.scat_labels && <FilterGroup title="ECY Sediment Impaired Category" labels={comp.scat_labels}
+                  colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }}
+                  selected={selScat} setSelected={setSelScat} />}
+              </div>
+            </CollapsibleSection>
+
+            {/* Section 4: River Context (default closed) */}
+            <CollapsibleSection title="River Context" defaultOpen={false} badge={compBadges.river}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                {/* Buffer Zones */}
                 <div>
-                  {comp.bfw_labels && <FilterGroup title="Stream Size" labels={comp.bfw_labels}
-                    colors={{ 'Headwater/Ditch': '#66CAD8', 'Small Stream': '#1193BA', 'Medium Stream': '#0B7A9E', 'Large Stream': '#004562', 'Mainstem': '#002D42' }}
-                    selected={selBfw} setSelected={setSelBfw}
-                    highlighted={groupBy === 'bfw'}
-                    badge={groupBy === 'bfw' ? 'grouping' : undefined} />}
-                </div>
-                <div style={{ marginTop: 4 }}>
-                  {comp.hmz_labels && <FilterGroup title="HMZ" labels={comp.hmz_labels}
-                    colors={{ 'Y': '#f59e0b', 'N': '#6b7280' }}
-                    selected={selHmz} setSelected={setSelHmz}
-                    highlighted={groupBy === 'hmz'}
-                    badge={groupBy === 'hmz' ? 'grouping' : undefined} />}
-                </div>
-                {/* Buffer Zone presence filter */}
-                <div style={{ marginTop: 4 }}>
                   <div className="flex items-center gap-1 mb-1">
-                    <span style={{ fontSize: 10, fontWeight: 600, color: '#374151' }}>Buffer Zones</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: '#374151', minWidth: 60 }}>Buffer Zones</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {bufZoneLabels.map((lbl, i) => {
                       const checked = selBufZone.has(i);
-                      const disabled = i === 0; // 50ft always on
+                      const disabled = i === 0;
                       return (
                         <button key={i} onClick={() => !disabled && toggleBufZone(i)}
                           style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, border: '1px solid',
@@ -2996,669 +3154,58 @@
                     })}
                   </div>
                 </div>
+                {comp.hmz_labels && <FilterGroup title="Historic Migration Zone (HMZ)" labels={comp.hmz_labels}
+                  colors={{ 'Y': '#f59e0b', 'N': '#6b7280' }}
+                  selected={selHmz} setSelected={setSelHmz}
+                  highlighted={groupBy === 'hmz'}
+                  badge={groupBy === 'hmz' ? 'grouping' : undefined} />}
+                {comp.bfw_labels && <FilterGroup title="Bankfull Width (BfW)" labels={comp.bfw_labels}
+                  colors={{ 'Headwater/Ditch': '#66CAD8', 'Small Stream': '#1193BA', 'Medium Stream': '#0B7A9E', 'Large Stream': '#004562', 'Mainstem': '#002D42' }}
+                  selected={selBfw} setSelected={setSelBfw}
+                  highlighted={groupBy === 'bfw'}
+                  badge={groupBy === 'bfw' ? 'grouping' : undefined} />}
+                {comp.sr_zone_labels && <FilterGroup title="Stream Region Zone (SR Zone)" labels={comp.sr_zone_labels}
+                  colors={SR_ZONE_COLORS} selected={selZone} setSelected={setSelZone}
+                  highlighted={groupBy === 'zone'}
+                  badge={groupBy === 'zone' ? 'grouping' : undefined} />}
               </div>
-              {/* Col 3: SR Zone */}
-              {comp.sr_zone_labels && <FilterGroup title="SR Zone" labels={comp.sr_zone_labels}
-                colors={SR_ZONE_COLORS} selected={selZone} setSelected={setSelZone}
-                highlighted={groupBy === 'zone'}
-                badge={groupBy === 'zone' ? 'grouping' : undefined} />}
-              {/* Col 4: Zoning + Ownership stacked */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div>
-                  {comp.zon_labels && <FilterGroup title="Zoning" labels={comp.zon_labels}
-                    colors={ZONING_COLORS} selected={selZon} setSelected={setSelZon}
-                    highlighted={groupBy === 'zon'}
-                    badge={groupBy === 'zon' ? 'grouping' : undefined} />}
-                </div>
-                <div style={{ marginTop: 4 }}>
-                  {comp.own_labels && <FilterGroup title="Ownership" labels={comp.own_labels}
-                    colors={MANAGER_CAT_COLORS} selected={selOwn} setSelected={setSelOwn}
-                    highlighted={groupBy === 'own'}
-                    badge={groupBy === 'own' ? 'grouping' : undefined} />}
-                </div>
+            </CollapsibleSection>
+
+            {/* Section 5: Administrative (default closed) */}
+            <CollapsibleSection title="Administrative" defaultOpen={false} badge={compBadges.admin}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                {comp.own_labels && <FilterGroup title="Owner" labels={comp.own_labels}
+                  colors={MANAGER_CAT_COLORS} selected={selOwn} setSelected={setSelOwn}
+                  highlighted={groupBy === 'own'}
+                  badge={groupBy === 'own' ? 'grouping' : undefined} />}
+                {comp.zon_labels && <FilterGroup title="Zoning" labels={comp.zon_labels}
+                  colors={ZONING_COLORS} selected={selZon} setSelected={setSelZon}
+                  highlighted={groupBy === 'zon'}
+                  badge={groupBy === 'zon' ? 'grouping' : undefined} />}
               </div>
-            </div>
+            </CollapsibleSection>
+
+            {/* Action bar \u2014 stays outside collapsible sections */}
             <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200">
               <button onClick={applyCompFilters}
                 className="text-xs px-4 py-1.5 rounded text-white font-semibold"
                 style={{ background: compFiltersDirty ? '#F9A134' : '#1193BA', boxShadow: compFiltersDirty ? '0 0 0 2px rgba(249,161,52,0.4)' : 'none', transition: 'all 0.2s' }}>
                 {compFiltersDirty ? '\u26A1 Apply Filters' : '\u2713 Filters Applied'}
               </button>
-              <span className="text-xs text-gray-500">
-                {filteredPoints.length.toLocaleString()} / {scatterPoints.length.toLocaleString()} BIDs
-                {compFiltersDirty && <span className="text-amber-500 ml-2">(click Apply to update charts)</span>}
+              <button onClick={resetAllComp}
+                className="text-xs px-3 py-1 rounded bg-gray-200 text-gray-600 hover:bg-gray-300">
+                Reset All
+              </button>
+              <span className="text-sm text-gray-600">
+                <span className="font-bold" style={{ color: '#1193BA' }}>{filteredPoints.length.toLocaleString()}</span> of {scatterPoints.length.toLocaleString()} BIDs
+                {compFiltersDirty && <span className="text-xs text-amber-500 ml-2">(filters changed \u2014 click Apply)</span>}
               </span>
             </div>
-          </details>
+          </div>
 
           {/* Spectrum Strip view */}
           <div className="bg-white border rounded-lg p-4">
             <SpectrumView />
-          </div>
-        </div>
-      );
-    }
-
-    // ============================================================
-    // Tab: Bivariate Analysis (RP_final vs RP_area_pctile)
-    // ============================================================
-    function BivariatePanel({ data }) {
-      const bv = data.bivariate;
-      if (!bv) return <div className="text-gray-500">No bivariate data. Regenerate with latest preprocessor.</div>;
-
-      const [chartType, setChartType] = React.useState('scatter');
-      const [xThresh, setXThresh] = React.useState(bv.x_median);
-      const [yThresh, setYThresh] = React.useState(bv.y_median);
-      const [colorBy, setColorBy] = React.useState('none');  // none|zone|tier|chk|fish|zon
-
-      // Color-by definitions
-      const COLOR_BY_OPTIONS = [
-        { id: 'none', label: 'Single Color' },
-        { id: 'zone', label: 'SR Zone' },
-        { id: 'tier', label: 'Priority Tier' },
-        { id: 'chk',  label: 'Chinook' },
-        { id: 'fish', label: 'Temp Impaired' },
-        { id: 'zon',  label: 'Zoning' },
-        { id: 'own',  label: 'Ownership' },
-      ];
-      const COLOR_BY_MAP = {
-        zone: { key: 'zone', labels: bv.sr_zone_labels || [], colors: SR_ZONE_COLORS },
-        tier: { key: 'tier', labels: bv.tier_labels || [], colors: TIER_COLORS },
-        chk:  { key: 'chk',  labels: bv.chk_labels || [],  colors: CHINOOK_COLORS },
-        fish: { key: 'fish', labels: bv.fish_labels || [],  colors: TEMP_COLORS },
-        zon:  { key: 'zon',  labels: bv.zon_labels || [],   colors: ZONING_COLORS },
-        own:  { key: 'own',  labels: bv.own_labels || [],   colors: MANAGER_CAT_COLORS },
-      };
-
-      // --- Filter state (all selected by default) ---
-      const [selZone, setSelZone] = React.useState(() => new Set(bv.sr_zone_labels || []));
-      const [selTier, setSelTier] = React.useState(() => new Set(bv.tier_labels || []));
-      const [selChk, setSelChk]   = React.useState(() => new Set(bv.chk_labels || []));
-      const [selFish, setSelFish] = React.useState(() => new Set(bv.fish_labels || []));
-      const [selZon, setSelZon]   = React.useState(() => new Set(bv.zon_labels || []));
-      const [selOwn, setSelOwn]   = React.useState(() => new Set(bv.own_labels || []));
-      const [selBfw, setSelBfw]   = React.useState(() => new Set(bv.bfw_labels || []));
-      const [selHmz, setSelHmz]   = React.useState(() => new Set(bv.hmz_labels || []));
-      const [selBufZone, setSelBufZone] = React.useState(() => new Set([0, 1, 2, 3, 4]));
-      const bufZoneLabels = bv.buf_zone_labels || ['0–50 ft', '50–100 ft', '100–300 ft', 'HMZ', 'HMZ+300'];
-      const toggleBufZone = (idx) => {
-        if (idx === 0) return;
-        const next = new Set(selBufZone);
-        if (next.has(idx)) { next.delete(idx); }
-        else { next.add(idx); if (idx === 2 && !next.has(1)) next.add(1); }
-        setSelBufZone(next);
-      };
-
-      const QUAD_COLORS = ['#00A79D', '#F9A134', '#1193BA', '#7F7B7A'];
-      const QUAD_SHORT  = ['Top Priority', 'Area-Focused', 'Condition-Focused', 'Lower Priority'];
-
-      // --- Transform scatter data to objects (15-element arrays) ---
-      const scatterPoints = React.useMemo(() => {
-        if (!bv.scatter_data) return [];
-        return bv.scatter_data.map(row => ({
-          x: row[0], y: row[1],
-          zone: bv.sr_zone_labels[row[2]] || 'Unknown',
-          tier: (bv.tier_labels || [])[row[3]] || 'P5',
-          chk:  (bv.chk_labels  || [])[row[4]] || 'N',
-          fish: (bv.fish_labels || [])[row[5]] || 'N',
-          zon:  (bv.zon_labels  || [])[row[6]] || 'Unknown',
-          own:  (bv.own_labels  || [])[row[7]] || 'Private/Unknown',
-          bfw:  (bv.bfw_labels  || [])[row[8]] || 'Headwater/Ditch',
-          hmz:  (bv.hmz_labels  || [])[row[9]] || 'N',
-          bufZones: [row[10], row[11], row[12], row[13], row[14]],
-        }));
-      }, [bv]);
-
-      // --- Deferred filtering (Apply button pattern) ---
-      const buildBvSnapshot = () => ({
-        selZone: new Set(selZone), selTier: new Set(selTier), selChk: new Set(selChk),
-        selFish: new Set(selFish), selZon: new Set(selZon), selOwn: new Set(selOwn),
-        selBfw: new Set(selBfw), selHmz: new Set(selHmz), selBufZone: new Set(selBufZone),
-      });
-      const [bvApplied, setBvApplied] = React.useState(() => buildBvSnapshot());
-      const applyBvFilters = () => setBvApplied(buildBvSnapshot());
-
-      const bvFiltersDirty = React.useMemo(() => {
-        const f = bvApplied;
-        const setEq = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
-        return !(setEq(selZone, f.selZone) && setEq(selTier, f.selTier) && setEq(selChk, f.selChk) &&
-          setEq(selFish, f.selFish) && setEq(selZon, f.selZon) && setEq(selOwn, f.selOwn) &&
-          setEq(selBfw, f.selBfw) && setEq(selHmz, f.selHmz) && setEq(selBufZone, f.selBufZone));
-      }, [bvApplied, selZone, selTier, selChk, selFish, selZon, selOwn, selBfw, selHmz, selBufZone]);
-
-      const filteredPoints = React.useMemo(() => {
-        const f = bvApplied;
-        return scatterPoints.filter(p =>
-          f.selZone.has(p.zone) && f.selTier.has(p.tier) && f.selChk.has(p.chk) &&
-          f.selFish.has(p.fish) && f.selZon.has(p.zon) && f.selOwn.has(p.own) &&
-          f.selBfw.has(p.bfw) && f.selHmz.has(p.hmz) &&
-          p.bufZones.some((flag, i) => flag && f.selBufZone.has(i))
-        );
-      }, [scatterPoints, bvApplied]);
-
-      // --- Reusable toggle helpers ---
-      const toggleItem = (set, setter, item) => {
-        const next = new Set(set);
-        next.has(item) ? next.delete(item) : next.add(item);
-        setter(next);
-      };
-      const toggleAll = (labels, set, setter) => {
-        setter(set.size === labels.length ? new Set() : new Set(labels));
-      };
-
-      // --- Client-side quadrant recalc from full_data ---
-      const quadrantsCalc = React.useMemo(() => {
-        const full = bv.full_data;
-        if (!full) return bv.quadrants;
-        const defs = [
-          { label: 'High Area + High Condition', xTest: v => v >= xThresh, yTest: v => v >= yThresh },
-          { label: 'High Area + Low Condition',  xTest: v => v >= xThresh, yTest: v => v < yThresh },
-          { label: 'Low Area + High Condition',  xTest: v => v < xThresh,  yTest: v => v >= yThresh },
-          { label: 'Low Area + Low Condition',   xTest: v => v < xThresh,  yTest: v => v < yThresh },
-        ];
-        return defs.map(d => {
-          const subset = full.filter(([x, y]) => d.xTest(x) && d.yTest(y));
-          const n = subset.length;
-          const sumX = subset.reduce((s, [x]) => s + x, 0);
-          const sumY = subset.reduce((s, [, y]) => s + y, 0);
-          return {
-            label: d.label, count: n,
-            pct: Math.round(n / full.length * 1000) / 10,
-            mean_rp_final: n > 0 ? Math.round(sumX / n * 100) / 100 : null,
-            mean_area_pctile: n > 0 ? Math.round(sumY / n * 100) / 100 : null,
-          };
-        });
-      }, [bv, xThresh, yThresh]);
-
-      // --- Custom tooltip for scatter ---
-      const ScatterTip = ({ active, payload }) => {
-        if (!active || !payload?.length) return null;
-        const d = payload[0].payload;
-        return (
-          <div className="bg-gray-900 text-white text-xs rounded px-2 py-1 shadow">
-            <div>RP Final: {fmtDec(d.x, 1)}</div>
-            <div>Area Pctile: {fmtDec(d.y, 1)}</div>
-            {d.zone && <div>Zone: {d.zone}</div>}
-            {d.tier && <div>Tier: {d.tier}</div>}
-            {d.zon && <div>Zoning: {d.zon}</div>}
-            {d.fish && <div>Fish: {d.fish} | Chinook: {d.chk}</div>}
-          </div>
-        );
-      };
-
-      // --- Reusable checkbox filter group ---
-      // highlighted = true when this group matches the active colorBy
-      function FilterGroup({ title, labels, colors, selected, setSelected, highlighted, badge }) {
-        const dimmed = highlighted === false;
-        return (
-          <div style={{ marginBottom: 4, opacity: dimmed ? 0.45 : 1, transition: 'opacity 0.2s' }}>
-            <div className="flex items-center gap-1 mb-1">
-              <span className={dimmed ? 'text-xs font-semibold text-gray-400' : 'text-xs font-semibold text-gray-600'}
-                style={{ minWidth: 60 }}>
-                {title}
-                {highlighted && <span style={{ fontSize: 9, marginLeft: 4, color: '#1193BA' }}>({badge || 'active'})</span>}
-              </span>
-              <button onClick={() => toggleAll(labels, selected, setSelected)}
-                className="text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 hover:bg-gray-300"
-                style={{ fontSize: 10, lineHeight: '14px' }}>
-                {selected.size === labels.length ? 'None' : 'All'}
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {labels.map(lbl => {
-                const on = selected.has(lbl);
-                const c = colors[lbl] || '#9ca3af';
-                return (
-                  <button key={lbl} onClick={() => toggleItem(selected, setSelected, lbl)}
-                    className="text-xs px-1.5 py-0.5 rounded border"
-                    style={{
-                      background: on ? c : 'transparent',
-                      color: on ? '#fff' : (dimmed ? '#9ca3af' : c),
-                      borderColor: on ? c : (dimmed ? '#d1d5db' : c),
-                      fontWeight: on ? 600 : 400,
-                      opacity: on ? 1 : 0.6,
-                      fontSize: 10,
-                    }}>
-                    {lbl}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      }
-
-      // ---- Helper: render scatter series by colorBy mode ----
-      // Pre-bucket scatter points by color-by group (avoids per-render filtering of 15K points)
-      const coloredScatterSeries = React.useMemo(() => {
-        const cbDef = COLOR_BY_MAP[colorBy];
-        if (!cbDef) return [{ key: 'all', pts: filteredPoints, fill: '#1193BA' }];
-        return cbDef.labels.map(lbl => ({
-          key: lbl, fill: cbDef.colors[lbl] || '#9ca3af',
-          pts: filteredPoints.filter(p => p[cbDef.key] === lbl),
-        })).filter(s => s.pts.length > 0);
-      }, [filteredPoints, colorBy]);
-
-      function renderColoredScatter() {
-        return coloredScatterSeries.map(s => (
-          <Scatter key={s.key} name={s.key} data={s.pts}
-            fill={s.fill} fillOpacity={coloredScatterSeries.length === 1 ? 0.4 : 0.65}
-            isAnimationActive={false} />
-        ));
-      }
-
-      // ---- SCATTER PLOT ----
-      function ScatterView() {
-        return (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Scatter Plot ({fmtN(filteredPoints.length)} of {fmtN(scatterPoints.length)} BIDs)
-              </h4>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                <span>Color by:</span>
-                <select value={colorBy} onChange={e => setColorBy(e.target.value)}
-                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                  {COLOR_BY_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                </select>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={500}>
-              <ScatterChart margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                <XAxis type="number" dataKey="x" domain={[0, 100]} name="RP Final"
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  label={{ value: bv.x_label, position: 'bottom', offset: 15, fontSize: 11, fill: '#6b7280' }} />
-                <YAxis type="number" dataKey="y" domain={[0, 100]} name="Area Pctile"
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  label={{ value: bv.y_label, angle: -90, position: 'insideLeft', offset: 5, fontSize: 11, fill: '#6b7280' }} />
-                <ZAxis range={[10, 10]} />
-                {/* Tooltip disabled for performance with 15K points */}
-                <ReferenceLine x={bv.x_median} stroke="#6b7280" strokeDasharray="3 3" strokeWidth={1} />
-                <ReferenceLine y={bv.y_median} stroke="#6b7280" strokeDasharray="3 3" strokeWidth={1} />
-                <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 100, y: 100 }]}
-                  stroke="#ef4444" strokeDasharray="5 5" strokeWidth={1} ifOverflow="extendDomain" />
-                {renderColoredScatter()}
-                {colorBy !== 'none' && <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 10 }} />}
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-        );
-      }
-
-      // ---- QUADRANT ANALYSIS ----
-      function QuadrantView() {
-        return (
-          <div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
-              <h4 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">
-                Quadrant Thresholds
-              </h4>
-              <SliderRow label={`Area Pctile threshold: ${fmtDec(xThresh, 1)}`}
-                value={xThresh} onChange={setXThresh} min={10} max={90} step={1} />
-              <SliderRow label={`RP Final threshold: ${fmtDec(yThresh, 1)}`}
-                value={yThresh} onChange={setYThresh} min={10} max={90} step={1} />
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {quadrantsCalc.map((q, i) => (
-                <div key={i} className="rounded-lg shadow p-4 text-center bg-white dark:bg-gray-800"
-                  style={{ borderLeft: `5px solid ${QUAD_COLORS[i]}` }}>
-                  <div className="text-2xl font-bold" style={{ color: QUAD_COLORS[i] }}>
-                    {fmtN(q.count)}
-                  </div>
-                  <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-1">
-                    {QUAD_SHORT[i]}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {q.pct}% of BIDs
-                  </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    {q.label}
-                  </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                    avg RP: {fmtDec(q.mean_rp_final)} | avg Area%: {fmtDec(q.mean_area_pctile)}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Visual quadrant scatter preview */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-              <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                Quadrant Map ({fmtN(filteredPoints.length)} of {fmtN(scatterPoints.length)} BIDs)
-              </h4>
-              <ResponsiveContainer width="100%" height={450}>
-                <ScatterChart margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                  <XAxis type="number" dataKey="x" domain={[0, 100]}
-                    tick={{ fontSize: 10, fill: '#9ca3af' }}
-                    label={{ value: bv.x_label, position: 'bottom', offset: 15, fontSize: 11, fill: '#6b7280' }} />
-                  <YAxis type="number" dataKey="y" domain={[0, 100]}
-                    tick={{ fontSize: 10, fill: '#9ca3af' }}
-                    label={{ value: bv.y_label, angle: -90, position: 'insideLeft', offset: 5, fontSize: 11, fill: '#6b7280' }} />
-                  <ZAxis range={[10, 10]} />
-                  {/* Tooltip disabled for performance with 15K points */}
-                  <ReferenceLine x={xThresh} stroke="#374151" strokeWidth={2} strokeDasharray="4 4" />
-                  <ReferenceLine y={yThresh} stroke="#374151" strokeWidth={2} strokeDasharray="4 4" />
-                  {/* 4 quadrant scatters with matching colors */}
-                  <Scatter name={QUAD_SHORT[0]}
-                    data={filteredPoints.filter(p => p.x >= xThresh && p.y >= yThresh)}
-                    fill={QUAD_COLORS[0]} fillOpacity={0.5} isAnimationActive={false} />
-                  <Scatter name={QUAD_SHORT[1]}
-                    data={filteredPoints.filter(p => p.x >= xThresh && p.y < yThresh)}
-                    fill={QUAD_COLORS[1]} fillOpacity={0.5} isAnimationActive={false} />
-                  <Scatter name={QUAD_SHORT[2]}
-                    data={filteredPoints.filter(p => p.x < xThresh && p.y >= yThresh)}
-                    fill={QUAD_COLORS[2]} fillOpacity={0.5} isAnimationActive={false} />
-                  <Scatter name={QUAD_SHORT[3]}
-                    data={filteredPoints.filter(p => p.x < xThresh && p.y < yThresh)}
-                    fill={QUAD_COLORS[3]} fillOpacity={0.4} isAnimationActive={false} />
-                  <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 10 }} />
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        );
-      }
-
-      // ---- MARGINAL HISTOGRAMS ----
-      function MarginalView() {
-        const BIN_W = 2, NBINS = 50;
-        const cbDef = COLOR_BY_MAP[colorBy];
-        const cats = cbDef ? cbDef.labels : ['all'];
-
-        // Client-side binning of filteredPoints, stacked by colorBy
-        // Also bin ALL scatterPoints for ghost background bars
-        const histData = React.useMemo(() => {
-          function buildHist(pts, valKey) {
-            const bins = Array.from({ length: NBINS }, (_, i) => {
-              const obj = { bin: i * BIN_W };
-              cats.forEach(c => { obj[c] = 0; });
-              return obj;
-            });
-            pts.forEach(p => {
-              const idx = Math.min(Math.floor(p[valKey] / BIN_W), NBINS - 1);
-              if (idx < 0) return;
-              const cat = cbDef ? p[cbDef.key] : 'all';
-              if (bins[idx][cat] !== undefined) bins[idx][cat]++;
-            });
-            return bins;
-          }
-          function buildGhost(pts, valKey) {
-            const bins = Array.from({ length: NBINS }, (_, i) => ({ bin: i * BIN_W, _ghost: 0 }));
-            pts.forEach(p => {
-              const idx = Math.min(Math.floor(p[valKey] / BIN_W), NBINS - 1);
-              if (idx >= 0) bins[idx]._ghost++;
-            });
-            return bins;
-          }
-          return {
-            y: buildHist(filteredPoints, 'y'),
-            x: buildHist(filteredPoints, 'x'),
-            ghostY: buildGhost(scatterPoints, 'y'),
-            ghostX: buildGhost(scatterPoints, 'x'),
-          };
-        }, [filteredPoints, scatterPoints, colorBy]);
-
-        // Merge ghost into hist bins as _remainder (ghost total minus filtered total) on top of stack
-        const mergedY = React.useMemo(() => histData.y.map((b, i) => {
-          const filtered = cats.reduce((s, c) => s + (b[c] || 0), 0);
-          return { ...b, _remainder: Math.max(0, histData.ghostY[i]._ghost - filtered) };
-        }), [histData]);
-        const mergedX = React.useMemo(() => histData.x.map((b, i) => {
-          const filtered = cats.reduce((s, c) => s + (b[c] || 0), 0);
-          return { ...b, _remainder: Math.max(0, histData.ghostX[i]._ghost - filtered) };
-        }), [histData]);
-
-        // Custom tooltip – fully opaque, no transparency
-        const DistTooltip = ({ active, payload, label }) => {
-          if (!active || !payload || !payload.length) return null;
-          const visible = payload.filter(p => p.dataKey !== '_remainder');
-          return (
-            <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 6,
-              padding: '6px 10px', fontSize: 11, color: '#e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
-              <div style={{ fontWeight: 600, marginBottom: 3 }}>Bin {label}–{label + BIN_W}</div>
-              {visible.map(p => (
-                <div key={p.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: p.fill || p.color, display: 'inline-block' }} />
-                  <span>{p.dataKey}: {p.value}</span>
-                </div>
-              ))}
-            </div>
-          );
-        };
-
-        // Stacked bars: colored segments at bottom, grey remainder on top showing full unfiltered height
-        const renderBars = (defaultColor) => {
-          if (cbDef) {
-            return [...cbDef.labels.map(lbl => (
-              <Bar key={lbl} dataKey={lbl} stackId="s" fill={cbDef.colors[lbl] || '#9ca3af'}
-                fillOpacity={0.85} isAnimationActive={false} />
-            )),
-              <Bar key="_remainder" dataKey="_remainder" stackId="s" fill="#d1d5db" fillOpacity={0.18}
-                isAnimationActive={false} radius={[2, 2, 0, 0]} />
-            ];
-          }
-          return [
-            <Bar key="all" dataKey="all" stackId="s" fill={defaultColor} fillOpacity={0.8}
-              isAnimationActive={false} />,
-            <Bar key="_remainder" dataKey="_remainder" stackId="s" fill="#d1d5db" fillOpacity={0.18}
-              isAnimationActive={false} radius={[2, 2, 0, 0]} />
-          ];
-        };
-
-        return (
-          <div>
-            {/* Color-by selector for distributions */}
-            <div className="flex items-center gap-1.5 mb-3 text-xs text-gray-500 dark:text-gray-400">
-              <span>Color by:</span>
-              <select value={colorBy} onChange={e => setColorBy(e.target.value)}
-                className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                {COLOR_BY_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-              </select>
-              <span className="ml-2 text-gray-400">{fmtN(filteredPoints.length)} filtered BIDs</span>
-            </div>
-
-            {/* Y marginal: RP Final — shown FIRST */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-3">
-              <h4 className="text-xs font-semibold mb-1 text-gray-600 dark:text-gray-400">
-                RP Final Distribution (Y-axis) — median: {fmtDec(bv.y_median, 1)}
-              </h4>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={mergedY} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                  <XAxis dataKey="bin" tick={{ fontSize: 8, fill: '#9ca3af' }} interval={4} />
-                  <YAxis tick={{ fontSize: 8, fill: '#9ca3af' }} />
-                  <Tooltip content={<DistTooltip />} cursor={{ fill: 'rgba(156,163,175,0.08)' }} />
-                  {renderBars('#1193BA')}
-                  <ReferenceLine x={Math.round(bv.y_median)} stroke="#ef4444"
-                    strokeDasharray="3 3" strokeWidth={1.5} />
-                  {cbDef && <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 10 }}
-                    payload={cbDef.labels.map(lbl => ({ value: lbl, type: 'square', color: cbDef.colors[lbl] }))} />}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* X marginal: Area Pctile — shown SECOND */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-              <h4 className="text-xs font-semibold mb-1 text-gray-600 dark:text-gray-400">
-                Area-Weighted Pctile Distribution (X-axis) — median: {fmtDec(bv.x_median, 1)}
-              </h4>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={mergedX} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                  <XAxis dataKey="bin" tick={{ fontSize: 8, fill: '#9ca3af' }} interval={4} />
-                  <YAxis tick={{ fontSize: 8, fill: '#9ca3af' }} />
-                  <Tooltip content={<DistTooltip />} cursor={{ fill: 'rgba(156,163,175,0.08)' }} />
-                  {renderBars('#f59e0b')}
-                  <ReferenceLine x={Math.round(bv.x_median)} stroke="#ef4444"
-                    strokeDasharray="3 3" strokeWidth={1.5} />
-                  {cbDef && <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 10 }}
-                    payload={cbDef.labels.map(lbl => ({ value: lbl, type: 'square', color: cbDef.colors[lbl] }))} />}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        );
-      }
-
-      // ---- MAIN PANEL RETURN ----
-      return (
-        <div>
-          {/* Info banner */}
-          <div className="rounded-lg p-3 mb-6 text-sm" style={{ background: '#e8f6fa', border: '1px solid #66CAD8', color: '#004562' }}>
-            Comparing two scoring axes for <strong>{fmtN(bv.n_total)}</strong> BIDs:
-            <strong> Area-Weighted Priority Percentile</strong> (X, 0–100) vs
-            <strong> RP Final</strong> (Y, condition + solar + slope, 0–100).
-            Pearson <em>r</em> = <strong>{bv.correlation.toFixed(3)}</strong>.
-          </div>
-
-          {/* Summary stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <StatCard label="BIDs Analyzed" value={fmtN(bv.n_total)} sub="count of scored BIDs" />
-            <StatCard label="Correlation (r)" value={bv.correlation.toFixed(3)} sub="Pearson correlation" />
-            <StatCard label="Area Pctile Median" value={fmtDec(bv.x_median, 1)}
-              sub={`percentile · range: ${fmtDec(bv.x_stats?.min, 1)}–${fmtDec(bv.x_stats?.max, 1)}`} />
-            <StatCard label="RP Final Median" value={fmtDec(bv.y_median, 1)}
-              sub={`RP score · range: ${fmtDec(bv.y_stats?.min, 1)}–${fmtDec(bv.y_stats?.max, 1)}`} />
-            <StatCard label="Top Priority" value={fmtN(bv.quadrants[0]?.count)}
-              sub={`count of BIDs · ${bv.quadrants[0]?.pct}% of total`} />
-          </div>
-
-          {/* Scatter filter panel */}
-          {(bv.tier_labels || bv.chk_labels || bv.fish_labels || bv.zon_labels) && (
-            <details open className="bg-white border rounded-lg p-3 mb-5">
-              <summary className="text-sm font-semibold text-gray-700 cursor-pointer mb-2">
-                Filters
-                <span className="ml-2 text-esa-teal font-normal text-xs">
-                  {fmtN(filteredPoints.length)} / {fmtN(scatterPoints.length)} BIDs
-                </span>
-              </summary>
-              <p className="text-xs text-gray-400 mb-2">Toggle to include/exclude BIDs. Filters are AND-combined. Click <b>Apply</b> to update charts. Use <b>Color by</b> below to change coloring.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1">
-                {/* Col 1: Priority / Chinook / Temp */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div>{bv.tier_labels && <FilterGroup title="Priority" labels={bv.tier_labels} colors={TIER_COLORS} selected={selTier} setSelected={setSelTier}
-                    highlighted={colorBy === 'none' ? undefined : colorBy === 'tier'} badge="coloring" />}</div>
-                  <div style={{ marginLeft: 10 }}>{bv.chk_labels && <FilterGroup title="Chinook" labels={bv.chk_labels} colors={CHINOOK_COLORS} selected={selChk} setSelected={setSelChk}
-                    highlighted={colorBy === 'none' ? undefined : colorBy === 'chk'} badge="coloring" />}</div>
-                  <div style={{ marginLeft: 20 }}>{bv.fish_labels && <FilterGroup title="Temp Impaired" labels={bv.fish_labels} colors={TEMP_COLORS} selected={selFish} setSelected={setSelFish}
-                    highlighted={colorBy === 'none' ? undefined : colorBy === 'fish'} badge="coloring" />}</div>
-                </div>
-                {/* Col 2: Stream Size + HMZ */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div>{bv.bfw_labels && <FilterGroup title="Stream Size" labels={bv.bfw_labels}
-                    colors={{ 'Headwater/Ditch': '#66CAD8', 'Small Stream': '#1193BA', 'Medium Stream': '#0B7A9E', 'Large Stream': '#004562', 'Mainstem': '#002D42' }}
-                    selected={selBfw} setSelected={setSelBfw} />}</div>
-                  <div style={{ marginTop: 4 }}>{bv.hmz_labels && <FilterGroup title="HMZ" labels={bv.hmz_labels}
-                    colors={{ 'Y': '#f59e0b', 'N': '#6b7280' }}
-                    selected={selHmz} setSelected={setSelHmz} />}</div>
-                  {/* Buffer Zone presence */}
-                  <div style={{ marginTop: 4 }}>
-                    <div className="flex items-center gap-1 mb-1">
-                      <span style={{ fontSize: 10, fontWeight: 600, color: '#374151' }}>Buffer Zones</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {bufZoneLabels.map((lbl, i) => {
-                        const checked = selBufZone.has(i);
-                        const disabled = i === 0;
-                        return (
-                          <button key={i} onClick={() => !disabled && toggleBufZone(i)}
-                            style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, border: '1px solid',
-                              borderColor: checked ? '#1193BA' : '#d1d5db',
-                              background: checked ? '#1193BA' : '#f3f4f6',
-                              color: checked ? '#fff' : '#6b7280',
-                              opacity: disabled ? 0.7 : 1,
-                              cursor: disabled ? 'default' : 'pointer' }}>
-                            {lbl}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                {/* Col 3: SR Zone */}
-                {bv.sr_zone_labels && <FilterGroup title="SR Zone" labels={bv.sr_zone_labels} colors={SR_ZONE_COLORS} selected={selZone} setSelected={setSelZone}
-                  highlighted={colorBy === 'none' ? undefined : colorBy === 'zone'} badge="coloring" />}
-                {/* Col 4: Zoning + Ownership stacked */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div>{bv.zon_labels && <FilterGroup title="Zoning" labels={bv.zon_labels} colors={ZONING_COLORS} selected={selZon} setSelected={setSelZon}
-                    highlighted={colorBy === 'none' ? undefined : colorBy === 'zon'} badge="coloring" />}</div>
-                  <div style={{ marginTop: 4 }}>{bv.own_labels && <FilterGroup title="Ownership" labels={bv.own_labels} colors={MANAGER_CAT_COLORS} selected={selOwn} setSelected={setSelOwn}
-                    highlighted={colorBy === 'none' ? undefined : colorBy === 'own'} badge="coloring" />}</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200">
-                <button onClick={applyBvFilters}
-                  className="text-xs px-4 py-1.5 rounded text-white font-semibold"
-                  style={{ background: bvFiltersDirty ? '#F9A134' : '#1193BA', boxShadow: bvFiltersDirty ? '0 0 0 2px rgba(249,161,52,0.4)' : 'none', transition: 'all 0.2s' }}>
-                  {bvFiltersDirty ? '\u26A1 Apply Filters' : '\u2713 Filters Applied'}
-                </button>
-                <span className="text-xs text-gray-500">
-                  {filteredPoints.length.toLocaleString()} / {scatterPoints.length.toLocaleString()} BIDs
-                  {bvFiltersDirty && <span className="text-amber-500 ml-2">(click Apply to update charts)</span>}
-                </span>
-              </div>
-            </details>
-          )}
-
-          {/* Chart type toggle */}
-          <div className="flex gap-2 mb-5 flex-wrap">
-            {[
-              { id: 'scatter', label: '⬡ Scatter Plot' },
-              { id: 'marginal', label: '▥ Distributions' },
-              { id: 'quadrant', label: '◧ Quadrant Analysis' },
-            ].map(ct => (
-              <button key={ct.id} onClick={() => setChartType(ct.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  chartType === ct.id
-                    ? 'bg-esa-teal text-white shadow-md'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}>{ct.label}</button>
-            ))}
-          </div>
-
-          {/* Conditional chart rendering */}
-          {chartType === 'scatter' && <ScatterView />}
-
-          {chartType === 'quadrant' && <QuadrantView />}
-          {chartType === 'marginal' && <MarginalView />}
-
-          {/* Per-zone summary table (always visible) */}
-          <SectionTitle>Per-Zone Bivariate Summary</SectionTitle>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b dark:border-gray-700 text-gray-500 dark:text-gray-400">
-                  <th className="text-left py-2 px-2">SR Zone</th>
-                  <th className="text-right py-2 px-2">BIDs</th>
-                  <th className="text-right py-2 px-2">Mean Area Pctile</th>
-                  <th className="text-right py-2 px-2">Mean RP Final</th>
-                  <th className="text-right py-2 px-2">Difference</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(bv.zone_stats || []).map(z => {
-                  const diff = z.mean_area_pctile - z.mean_rp_final;
-                  return (
-                    <tr key={z.zone} className="border-b dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                      <td className="py-1.5 px-2 flex items-center gap-2">
-                        <span className="inline-block w-3 h-3 rounded"
-                          style={{ background: SR_ZONE_COLORS[z.zone] || '#9ca3af' }}></span>
-                        {z.zone}
-                      </td>
-                      <td className="text-right py-1.5 px-2">{fmtN(z.count)}</td>
-                      <td className="text-right py-1.5 px-2">{fmtDec(z.mean_area_pctile)}</td>
-                      <td className="text-right py-1.5 px-2">{fmtDec(z.mean_rp_final)}</td>
-                      <td className="text-right py-1.5 px-2" style={{
-                        color: diff > 0 ? '#059669' : diff < 0 ? '#dc2626' : '#6b7280'
-                      }}>{diff > 0 ? '+' : ''}{fmtDec(diff)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </div>
       );
@@ -4549,7 +4096,7 @@
           </div>
 
           <div className="rounded-lg p-3 mb-6 text-sm" style={{ background: '#e8f6fa', border: '1px solid #66CAD8', color: '#004562' }}>
-            Zoning groups unify Whatcom Co (WC_COMP) and Skagit Co (SC_ZONING_LAB) into common categories.
+            Zoning groups unify Whatcom Co (WC_COMP) and Skagit Co (SC_ZONING) into common categories.
             96% of BIDs are in Whatcom County. "Unknown" = null zoning field.
           </div>
 
@@ -5169,6 +4716,14 @@
                         <td className="py-1.5 text-gray-500">Solar Push</td>
                         <td className="py-1.5 text-right font-mono text-orange-500">+{attr.sol}</td>
                       </tr>
+                      {attr.asp != null && (
+                        <tr className="border-b dark:border-gray-700">
+                          <td className="py-1 pl-3 text-xs text-gray-400 italic">aspect {attr.asp}° → factor {(attr.af >= 0 ? '+' : '') + (attr.af ?? 0).toFixed(2)}</td>
+                          <td className="py-1 text-right font-mono text-xs text-gray-400 italic">
+                            {attr.af > 0.05 ? '(boosted)' : attr.af < -0.05 ? '(penalty)' : '(neutral)'}
+                          </td>
+                        </tr>
+                      )}
                       <tr className="border-b dark:border-gray-700">
                         <td className="py-1.5 text-gray-500">Slope Push</td>
                         <td className="py-1.5 text-right font-mono text-amber-600">+{attr.slp}</td>
@@ -5241,12 +4796,16 @@
                       <div><span className="text-xs px-1.5 py-0.5 rounded" style={{ background: SR_ZONE_COLORS[attr.srz] || '#9ca3af', color: '#fff' }}>{attr.srz || '-'}</span></div>
                     </div>
                     <div className="flex gap-4">
-                      <div><span className="text-gray-500 text-xs">Chinook</span>
+                      <div><span className="text-gray-500 text-xs">Spring Chinook</span>
                         <div><span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${attr.chk === 'Y' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>{attr.chk}</span></div>
                       </div>
                       <div><span className="text-gray-500 text-xs">Fish Access</span>
                         <div><span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${attr.fish === 'fish' ? 'bg-esa-teal-light/30 text-esa-navy' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>{attr.fish}</span></div>
                       </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-xs">Salmon Species</span>
+                      <div className="text-xs">{attr.sps || <span className="text-gray-400">—</span>}</div>
                     </div>
                     <div className="flex gap-4">
                       <div><span className="text-gray-500 text-xs">BFW Class</span><div className="text-xs font-mono">{attr.bfw}{attr.bft ? ` (${attr.bft} ft)` : ''}</div></div>
@@ -5278,11 +4837,25 @@
                       <span className={`w-2.5 h-2.5 rounded-full ${attr.ti ? 'bg-red-500' : 'bg-green-500'}`}></span>
                       <span className="text-gray-500 text-xs">Temperature</span>
                       <span className={`text-xs font-semibold ${attr.ti ? 'text-red-600' : 'text-green-600'}`}>{attr.ti ? 'Impaired' : 'OK'}</span>
+                      {attr.ti && attr.tic && (
+                        <span className="text-xs px-1.5 py-0.5 rounded font-mono bg-red-100 text-red-700">Cat {attr.tic}</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${attr.di ? 'bg-red-500' : 'bg-green-500'}`}></span>
-                      <span className="text-gray-500 text-xs">Dissolved Oxygen</span>
-                      <span className={`text-xs font-semibold ${attr.di ? 'text-red-600' : 'text-green-600'}`}>{attr.di ? 'Impaired' : 'OK'}</span>
+                      <span className={`w-2.5 h-2.5 rounded-full ${attr.fi ? 'bg-red-500' : 'bg-green-500'}`}></span>
+                      <span className="text-gray-500 text-xs">Fecal</span>
+                      <span className={`text-xs font-semibold ${attr.fi ? 'text-red-600' : 'text-green-600'}`}>{attr.fi ? 'Impaired' : 'OK'}</span>
+                      {attr.fi && attr.fic && (
+                        <span className="text-xs px-1.5 py-0.5 rounded font-mono bg-red-100 text-red-700">Cat {attr.fic}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${attr.si ? 'bg-red-500' : 'bg-green-500'}`}></span>
+                      <span className="text-gray-500 text-xs">Sediment</span>
+                      <span className={`text-xs font-semibold ${attr.si ? 'text-red-600' : 'text-green-600'}`}>{attr.si ? 'Impaired' : 'OK'}</span>
+                      {attr.si && attr.sic && (
+                        <span className="text-xs px-1.5 py-0.5 rounded font-mono bg-red-100 text-red-700">Cat {attr.sic}</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${attr.ai ? 'bg-red-500' : 'bg-green-500'}`}></span>
@@ -5725,7 +5298,7 @@
         <div id="meth-5" style={{ scrollMarginTop: 24 }}>
           <SectionTitle>5. Random Forest Model</SectionTitle>
           <div className={MC}>
-            <p>A Random Forest (RF) classifier was trained on spectral and topographic predictor variables derived from multispectral imagery and lidar, starting with <strong>43 candidate predictors</strong> and screening to <strong>19</strong> through 20 iterative model runs. The model is implemented via <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">scikit-learn</code>'s <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">RandomForestClassifier</code> in a custom ArcGIS Pro Python Toolbox (<code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">Light_RF.pyt</code>).</p>
+            <p>A Random Forest (RF) classifier was trained on spectral and topographic predictor variables derived from multispectral imagery and lidar, starting with <strong>43 candidate predictors</strong> and screening to <strong>19</strong> through 20 iterative model runs. The model is implemented via <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">scikit-learn</code>'s <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">RandomForestClassifier</code>.</p>
 
             <MH4>Model Configuration</MH4>
             <MTable
@@ -5764,11 +5337,11 @@
             <MH4>Predictor Screening &amp; Feature Importance</MH4>
             <p>As described above, predictor development and screening was an integral part of the iterative model evolution. The initial pool of <strong>43 candidate predictor variables</strong> spanned five categories. The toolbox's automated screening step dropped fields with excessive null values, constant values, or insufficient coverage. Subsequent model runs evaluated predictor importance using MDI (Mean Decrease Impurity) and MDA (Mean Decrease Accuracy / permutation importance), removing predictors with low or redundant discriminatory power in successive rounds. New derived predictors — such as seasonal spectral differences and tree-masked band statistics — were introduced and evaluated throughout this process. The final model retains <strong>19 predictors</strong> with no negative MDA values:</p>
             <ul className="list-disc pl-6 space-y-1">
-              <li><strong>Spectral vegetation indices</strong> (5) — Tree_EVI2, EV2_Diff, Tree_sen_ndvi_diff, Tree_fall_ndvi_diff, Tree_NDVI_STD.</li>
-              <li><strong>Spectral reflectance</strong> (5) — NIR, Tree_NIR, Tree_red_fall, Tree_fall_nir_diff (mean + std).</li>
-              <li><strong>Moisture &amp; shortwave IR</strong> (3) — SWIR_june, tree_SWIR_june (mean + std).</li>
-              <li><strong>LiDAR canopy structure</strong> (3) — CH_MEAN, Tree_CH_MEAN, Tree_RelPeak7_STD.</li>
-              <li><strong>Terrain &amp; ground</strong> (3) — Slope_MEAN, TWI_MEAN, Grd_Perc_MEAN.</li>
+              <li><strong>Spectral vegetation indices</strong> (5) — Mean EVI2 (growing season), EVI2 seasonal difference (summer–fall), NDVI seasonal difference (summer–fall), Fall–winter NDVI difference, NDVI standard deviation.</li>
+              <li><strong>Spectral reflectance</strong> (5) — NIR reflectance (mean + std), tree-masked NIR, fall red reflectance, fall NIR seasonal difference.</li>
+              <li><strong>Moisture &amp; shortwave IR</strong> (3) — June SWIR (leaf moisture), tree-masked June SWIR (mean + std).</li>
+              <li><strong>LiDAR canopy structure</strong> (3) — Mean canopy height, tree-masked canopy height, relative-peak metric (top 7%).</li>
+              <li><strong>Terrain &amp; ground</strong> (3) — Mean slope, Topographic Wetness Index, Ground returns percent.</li>
             </ul>
 
             <MH4>Top Predictors</MH4>
@@ -5776,17 +5349,17 @@
             <MTable
               headers={['Rank', 'Predictor', 'MDI', 'MDA', 'Ecological Signal']}
               rows={[
-                ['1', 'Tree_EVI2_MEAN', '0.141', '0.068', 'Growing-season vegetation vigor'],
-                ['2', 'Tree_sen_ndvi_diff_MEAN', '0.131', '0.069', 'Summer-fall NDVI difference (deciduous signal)'],
-                ['3', 'SWIR_june_MEAN', '0.123', '0.026', 'June moisture / leaf structure'],
-                ['4', 'tree_SWIR_june_MEAN', '0.122', '0.037', 'Tree-masked June moisture'],
-                ['5', 'EV2_Diff_MEAN', '0.109', '0.025', 'EVI2 seasonal difference'],
+                ['1', 'Mean EVI2 (growing season)', '0.141', '0.068', 'Growing-season vegetation vigor'],
+                ['2', 'NDVI seasonal difference (summer–fall)', '0.131', '0.069', 'Deciduous phenological signal'],
+                ['3', 'June SWIR (leaf moisture)', '0.123', '0.026', 'June moisture / leaf structure'],
+                ['4', 'Tree-masked June SWIR', '0.122', '0.037', 'Tree-masked June moisture'],
+                ['5', 'EVI2 seasonal difference (summer–fall)', '0.109', '0.025', 'Phenological canopy contrast'],
               ]}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 italic">See the Model Reference tab for the interactive feature importance chart and full model diagnostics.</p>
 
             <MH4>Training Point Selection</MH4>
-            <p>Training points were selected through <strong>opportunistic stratified sampling</strong> — polygons were assigned a composition class where the analyst could confidently determine the dominant cover type using high-resolution aerial imagery (NAIP), Google Street View, and local field knowledge <CiteRef id="tatum_2021" />. Labels were placed as point features and spatially joined to segmented polygons (Section 4), inheriting the full predictor attribute suite. Targeted additions to underrepresented deciduous classes were made in successive model runs.</p>
+            <p>Training points were selected through <strong>opportunistic stratified sampling</strong> — polygons were assigned a composition class where the analyst could confidently determine the dominant cover type using high-resolution aerial imagery (NAIP), Google Street View, and local field knowledge. Labels were placed as point features and spatially joined to segmented polygons (Section 4), inheriting the full predictor attribute suite. Targeted additions to underrepresented deciduous classes were made in successive model runs.</p>
 
             <MH4>Training Data Distribution</MH4>
             <p>The 702 training polygons are distributed across the five composition classes:</p>
@@ -5897,7 +5470,7 @@ Density (D):       D = 1 - pct_ground
 
 Composition (C):   C = (RF_gradient + 1) / 2
                     1.0 = conifer dominant; 0.0 = deciduous dominant`}</Formula>
-            <p>The canopy height normalization against SPTH is conceptually important: a 60-ft canopy on a site capable of growing 240-ft trees (H = 0.25) represents early-successional condition, while the same 60-ft canopy on a site with 120-ft potential (H = 0.50) represents a mid-seral stand. This site-relative approach echoes the framework used by Hyatt et al. (2004) in their Nooksack riparian assessment <CiteRef id="hyatt_2004" />.</p>
+            <p>The canopy height normalization against SPTH is conceptually important: a 60-ft canopy on a site capable of growing 240-ft trees (H = 0.25) represents early-successional condition, while the same 60-ft canopy on a site with 120-ft potential (H = 0.50) represents a mid-seral stand.</p>
 
             <MH4>7c. Forest Intactness &amp; Vegetation Weights</MH4>
             <p>For forest polygons (Domains 1 and 2), the three normalized variables combine into a single <strong>intactness index (I)</strong> that measures how close a polygon's forest condition is to full function (I = 1 means intact; I = 0 means fully degraded):</p>
@@ -5910,7 +5483,7 @@ Composition (C):   C = (RF_gradient + 1) / 2
               <li><strong>Density (0.35)</strong> — Canopy closure is a primary driver of shade delivery and interception. Reduced from an earlier 0.40 but remains co-equal with canopy height because sparse canopy with large gaps fails to provide continuous shade even with tall trees.</li>
               <li><strong>Composition (0.30)</strong> — Conifer-dominant stands provide greater wood longevity, year-round shade, and deeper root networks <CiteRef id="quinn_2020_vol1_wood" />, but deciduous riparian contributes meaningful short-term function. Weighted below height and density accordingly.</li>
             </ul>
-            <p>These weights navigate the tension between near-term riparian function and long-term movement toward properly functioning condition (PFC). Deciduous species like red alder establish quickly and provide rapid canopy closure, shade, and leaf litter — functions that matter now for temperature-impaired streams throughout WRIA 1 <CiteRef id="sf_reach_plan_2017" />. However, the desired future condition for western Washington riparian areas is structurally complex, conifer-dominant forest <CiteRef id="rentz_2020_vol2" />, which delivers persistent LWD, year-round shade, and deeper root networks over decades <CiteRef id="quinn_2020_vol1_wood" />. Weighting height and density above composition ensures that existing tall, dense canopy of any species is recognized, while the composition weight still rewards stands progressing toward conifer dominance. This balance reflects the WRIA 1 recovery strategy, where reforestation of riparian buffers is a high-priority action on temperature-impaired Chinook reaches even when initial planting is deciduous <CiteRef id="srfb_2019" />.</p>
+            <p>These weights navigate the tension between near-term riparian function and long-term movement toward properly functioning condition (PFC). Deciduous species like red alder establish quickly and provide rapid canopy closure, shade, and leaf litter — functions that matter now for temperature-impaired streams throughout WRIA 1. However, the desired future condition for western Washington riparian areas is structurally complex, conifer-dominant forest <CiteRef id="rentz_2020_vol2" />, which delivers persistent LWD, year-round shade, and deeper root networks over decades <CiteRef id="quinn_2020_vol1_wood" />. Weighting height and density above composition ensures that existing tall, dense canopy of any species is recognized, while the composition weight still rewards stands progressing toward conifer dominance. This balance reflects the WRIA 1 recovery strategy, where reforestation of riparian buffers is a high-priority action on temperature-impaired Chinook reaches even when initial planting is deciduous <CiteRef id="srfb_2019" />.</p>
 
             <MH5>S-Curve Transform</MH5>
             <p>Before combining into intactness, each normalized variable is passed through a logistic S-curve (sigmoid value function) that reshapes the 0–1 input into a non-linear preference scale. Ecological return on incremental condition gain is not uniform — the meaningful functional gains occur in the mid-range (maturing trees, filling canopy, establishing conifers), while bare ground and near-intact stands show diminishing returns. The S-curve concentrates scoring sensitivity in this mid-range. The strength parameter <em>s</em> controls departure from linear: at s = 1.0 the function is linear; higher values steepen the mid-range.</p>
@@ -5972,9 +5545,9 @@ Wetland push: wetland_prox × 5 × (RP_norm/100)^1.2
 
 RP_final = clip(RP_norm + solar_push + slope_push + wetland_push, 0, 100)`}</Formula>
             <p>All three modifiers are <strong>progressive</strong> — they scale with existing degradation (the <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">RP_norm</code> exponent), so intact banks receive minimal push. Solar exposure is a straightforward amplifier: more sun on a degraded bank means higher stream temperatures. Slope plays a secondary role — root networks are one of five key riparian functions identified by FEMAT <CiteRef id="femat_1993" /> and WDFW <CiteRef id="rentz_2020_vol2" />, and their loss on steep banks accelerates erosion and mass wasting. The effect is most pronounced in steeper upper-watershed reaches; in WRIA 1's lowland agricultural areas, temperature impairment is the dominant stressor <CiteRef id="smith_2002" /> <CiteRef id="srfb_2019" />. The maximum combined push is 22 points (12 solar + 5 slope + 5 wetland).</p>
-            <p><strong>Solar exposure</strong> (<code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">solar_risk</code>, max 12 points): Potential solar radiation from ArcGIS Pro's Area Solar Radiation tool on the LiDAR DTM, percentile-ranked across all BIDs (0–1). High solar on degraded banks accelerates temperature impacts <CiteRef id="sf_reach_plan_2017" />.</p>
-            <p><strong>Bank slope</strong> (<code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">slope_risk</code>, max 5 points): LiDAR DTM slope for the 0-50 ft zone, percentile-ranked (0-1) and applied to the full BID. The smaller weight reflects slope as a secondary amplifier — important where steep, unvegetated banks are losing root cohesion, but less universally limiting than solar exposure across the study area.</p>
-            <p><strong>Wetland proximity</strong> (<code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">wetland_prox</code>, max 5 points): Proximity to mapped wetland features, percentile-ranked (0-1). Banks near wetlands receive push where riparian-wetland connectivity supports ecological function — intact riparian corridors linking stream channels to adjacent wetlands provide enhanced habitat connectivity, nutrient processing, and floodwater attenuation.</p>
+            <p><strong>Solar exposure</strong> (max 12 points): Active-channel mean solar exposure from ArcGIS Pro's Area Solar Radiation tool on the LiDAR DTM, then <strong>weighted by bank aspect</strong> before percentile-ranking. The aspect-weighting recognizes that on opposite banks of the same reach, the south bank (which faces north) provides more efficient midday shade over the river channel — a tree on the north bank casts shadow away from the water. Mean bank aspect is converted to a signed cosine factor: +1.0 at pure north (0°/360°), 0.0 at east/west (90°/270°), and −1.0 at pure south (180°). The combined solar metric is computed as <em>raw solar × (1 + 0.5 × north_factor)</em>, then percentile-ranked (0–1) across all banks. With this weighting, a north-facing bank scores +50% relative to its raw solar; a south-facing bank scores −50%; east/west banks are neutral. The ranking ensures the 12-point cap is preserved while letting aspect modulate where each BID falls within the distribution.</p>
+            <p><strong>Bank slope</strong> (max 5 points): Mean slope of the first 50 ft of the bank, percentile-ranked (0–1) and applied to the full BID. The smaller weight reflects slope as a secondary amplifier — important where steep, unvegetated banks are losing root cohesion, but less universally limiting than solar exposure across the study area.</p>
+            <p><strong>Wetland push</strong> (max 5 points): Banks score higher the more wetland area falls within their buffer zones, with wetlands closer to the stream weighted more heavily (the 0–50 ft zone gets ~45% weight). Hydrologically connected wetlands that are unshaded and unforested can heat up and discharge warm water into the adjacent stream, amplifying temperature impairment — so reaches with substantial near-stream wetland area get an added push to prioritize their restoration.</p>
 
             <MH4>7f. Zone Distance-Decay Weighting</MH4>
             <p>When aggregating zone scores to the BID level, closer zones receive higher weight. The default <strong>Moderate</strong> curve assigns weights of [10, 6, 3, 2, 1] to the five zones, giving the 0–50 ft zone approximately 45% of the total weight. This front-loading is supported by the FEMAT functional effectiveness curves showing that shade, LWD delivery, root strength, and litter inputs each reach near-full effectiveness within one SPTH <CiteRef id="quinn_2020_vol1_spth" />.</p>
@@ -6018,7 +5591,7 @@ Default Moderate curve:
               <li><strong>Stream region</strong> — North Fork, Middle Fork, South Fork, Mainstem, and tributary groupings that align with SRST management units.</li>
               <li><strong>Land manager</strong> — Ownership from <MLink href="https://www.usgs.gov/programs/gap-analysis-project/science/pad-us-data-overview">USGS PAD-US</MLink> and land use from county comprehensive plans/zoning.</li>
               <li><strong>Bankfull width class</strong> — Modeled bankfull width from <CiteRef id="davies_bfw" />, classified into Headwater/Ditch, Small, Medium, Large, and Mainstem size classes.</li>
-              <li><strong>Water quality impairment</strong> — Temperature (303(d) listings), dissolved oxygen, and other parameters from Washington Department of Ecology's <MLink href="https://ecology.wa.gov/water-shorelines/water-quality/water-improvement/assessment-of-state-waters-303d">Water Quality Assessment</MLink> (Category 5, 303(d) listed waters), conflated to the reach network.</li>
+              <li><strong>Water quality impairment</strong> — Temperature, Fecal coliform, and Fine sediment listings from Washington Department of Ecology's <MLink href="https://ecology.wa.gov/water-shorelines/water-quality/water-improvement/assessment-of-state-waters-303d">Water Quality Assessment</MLink>, conflated to the reach network. For each parameter we capture the worst (highest-severity) Category code present in the reach (5 &gt; 4C &gt; 4B &gt; 4A &gt; 2 &gt; 3 &gt; 1) and flag a BID as "impaired" when the worst category is 2, 4A, 4B, 4C, or 5. Cat 1 (Meets Standards) and Cat 3 (Insufficient Data) are not flagged.</li>
               <li><strong>Spring Chinook distribution</strong> — Reaches within mapped spring Chinook extent from WDFW's <MLink href="https://geodataservices.wdfw.wa.gov/arcgis/rest/services/MapServices/SWIFD/MapServer">Salmonid Stock Inventory (SWIFD)</MLink> database.</li>
             </ul>
             <p>These attributes also serve as <strong>filters</strong> — users can narrow the BID set to specific conditions (e.g., fish-bearing South Fork reaches with high solar exposure).</p>
@@ -6055,7 +5628,7 @@ Default Moderate curve:
                 </ul>
               </li>
             </ul>
-            <p>The highest priorities target lowland agricultural reaches where riparian degradation is most concentrated <CiteRef id="hyatt_2004" /> <CiteRef id="smith_2002" />, consistent with the Tier 1 restoration strategies identified for these reaches <CiteRef id="srfb_2019" />.</p>
+            <p>The highest priorities target lowland agricultural reaches where riparian degradation is most concentrated <CiteRef id="smith_2002" />, consistent with the Tier 1 restoration strategies identified for these reaches <CiteRef id="srfb_2019" />.</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 italic mt-3">Interactive group, filter, and priority tier visualizations are available in the companion dashboard tabs.</p>
           </div>
         </div>
@@ -6555,6 +6128,36 @@ Default Moderate curve:
       );
     }
 
+    // --- Collapsible filter section wrapper ---
+    function CollapsibleSection({ title, defaultOpen = true, badge, children }) {
+      const [open, setOpen] = React.useState(defaultOpen);
+      return (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, marginBottom: 8, overflow: 'hidden' }}>
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="w-full text-left flex items-center justify-between hover:bg-gray-100"
+            style={{
+              padding: '6px 10px',
+              background: '#f9fafb',
+              borderBottom: open ? '1px solid #e5e7eb' : 'none',
+              cursor: 'pointer',
+            }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#002D42', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {title}
+              {badge != null && badge > 0 && (
+                <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 600, color: '#fff', background: '#1193BA',
+                  borderRadius: 8, padding: '1px 6px' }}>{badge}</span>
+              )}
+            </span>
+            <span style={{ fontSize: 10, color: '#6b7280',
+              transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>{'▶'}</span>
+          </button>
+          {open && <div style={{ padding: 10 }}>{children}</div>}
+        </div>
+      );
+    }
+
     // --- SQL helper: build WHERE clause from BID Query filters ---
     // Note: sql.js db.exec() uses named params or no params. We inline values safely
     // since all values come from our own controlled UI state (no user-typed SQL).
@@ -6578,13 +6181,37 @@ Default Moderate curve:
       };
       addSet('tier', f.selTier, f._labels?.tier || []);
       addSet('chk', f.selChk, f._labels?.chk || []);
-      addBoolSet('ti', f.selTi);
       addSet('fish', f.selFish, f._labels?.fish || []);
       addSet('srz', f.selSrz, f._labels?.srz || []);
       addSet('mgr', f.selMgr, f._labels?.mgr || []);
       addSet('zon', f.selZon, f._labels?.zon || []);
       addSet('bfw', f.selBfw, f._labels?.bfw || []);
       addBoolSet('hmz', f.selHmz);
+      addBoolSet('sal', f.selSal);
+      // Salmon species multi-select: if a strict subset is selected, filter to BIDs whose
+      // sps (semicolon-list) contains ANY of the selected species (OR-combined LIKE clauses).
+      const ALL_SPECIES = ['Spring Chinook', 'Fall Chinook', 'Coho',
+                           'Summer Steelhead', 'Winter Steelhead', 'Fall Chum',
+                           'Pink (Odd Year)', 'Sockeye', 'Dolly Varden / Bull Trout'];
+      if (f.selSpecies && f.selSpecies.size > 0 && f.selSpecies.size < ALL_SPECIES.length) {
+        const ors = [...f.selSpecies].map(sp => `sps LIKE ${esc('%' + sp + '%')}`);
+        clauses.push('(' + ors.join(' OR ') + ')');
+      } else if (f.selSpecies && f.selSpecies.size === 0) {
+        clauses.push('0'); // explicitly nothing selected
+      }
+      // For impairment categories: filter applies only when impaired=True; if all cats selected,
+      // we ALSO want to include non-impaired BIDs (cat is null/empty). If a subset is selected,
+      // we restrict to impaired BIDs with that cat OR include non-impaired only when 'N' is selected.
+      // Simpler approach: only filter cats if user has a strict subset selected (not all available).
+      const addCatSet = (col, set, allLabels) => {
+        if (!set || set.size === 0) { clauses.push('0'); return; }
+        if (set.size < allLabels.length) {
+          clauses.push(`${col} IN (${[...set].map(v => esc(v)).join(',')})`);
+        }
+      };
+      addCatSet('tic', f.selTcat, f._labels?.tcat || []);
+      addCatSet('fic', f.selFcat, f._labels?.fcat || []);
+      addCatSet('sic', f.selScat, f._labels?.scat || []);
       addRange('rpf', f.rRPF);
       addRange('rpa', f.rRPA);
       addRange('mc', f.rComp);
@@ -6614,7 +6241,7 @@ Default Moderate curve:
         setter(set.size === labels.length ? new Set() : new Set(labels));
       };
 
-      // FilterGroup inline (same as Composition/Bivariate panels)
+      // FilterGroup inline (same as Composition panel)
       function FilterGroup({ title, labels, colors, selected, setSelected }) {
         return (
           <div style={{ marginBottom: 6 }}>
@@ -6663,31 +6290,47 @@ Default Moderate curve:
       // --- SQL-backed label sets (DISTINCT queries, run once) ---
       const labelSets = React.useMemo(() => {
         if (!db) return {};
-        const getDistinct = (col) => {
-          const r = db.exec(`SELECT DISTINCT ${col} FROM bids WHERE ${col} IS NOT NULL ORDER BY ${col}`);
+        const getDistinct = (col, where = "") => {
+          const filter = where ? ` AND ${where}` : "";
+          const r = db.exec(`SELECT DISTINCT ${col} FROM bids WHERE ${col} IS NOT NULL AND ${col} != ''${filter} ORDER BY ${col}`);
           return r.length ? r[0].values.map(v => String(v[0])) : [];
         };
         return {
           tier: getDistinct('tier'), chk: getDistinct('chk'),
-          ti: ['N', 'Y'], fish: getDistinct('fish'),
+          fish: getDistinct('fish'),
           srz: getDistinct('srz'), mgr: getDistinct('mgr'),
           zon: getDistinct('zon'), bfw: getDistinct('bfw'),
-          hmz: ['N', 'Y'],
+          hmz: ['N', 'Y'], sal: ['N', 'Y'],
+          tcat: getDistinct('tic', 'ti=1'),
+          fcat: getDistinct('fic', 'fi=1'),
+          scat: getDistinct('sic', 'si=1'),
+          species: ['Spring Chinook', 'Fall Chinook', 'Coho',
+                    'Summer Steelhead', 'Winter Steelhead', 'Fall Chum',
+                    'Pink (Odd Year)', 'Sockeye', 'Dolly Varden / Bull Trout'],
         };
       }, [db]);
 
       const totalBidCount = React.useMemo(() => sqlBidCount(db), [db]);
 
       // --- Categorical filter state ---
-      const [selTier, setSelTier] = React.useState(null);
+      const [selTier, setSelTier] = React.useState(null);  // null until labelSets loads
       const [selChk, setSelChk] = React.useState(null);
-      const [selTi, setSelTi] = React.useState(null);
       const [selFish, setSelFish] = React.useState(null);
       const [selSrz, setSelSrz] = React.useState(null);
       const [selMgr, setSelMgr] = React.useState(null);
       const [selZon, setSelZon] = React.useState(null);
       const [selBfw, setSelBfw] = React.useState(null);
       const [selHmz, setSelHmz] = React.useState(null);
+      const [selSal, setSelSal] = React.useState(null);    // Salmon presence (Y/N)
+      const [selSpecies, setSelSpecies] = React.useState(null);  // Salmon species multi-select
+      const [selTcat, setSelTcat] = React.useState(null);  // Temperature impairment cat
+      const [selFcat, setSelFcat] = React.useState(null);  // Fecal impairment cat
+      const [selScat, setSelScat] = React.useState(null);  // Sediment impairment cat
+      const SALMON_SPECIES = [
+        'Spring Chinook', 'Fall Chinook', 'Coho',
+        'Summer Steelhead', 'Winter Steelhead', 'Fall Chum',
+        'Pink (Odd Year)', 'Sockeye', 'Dolly Varden / Bull Trout',
+      ];
       const [selBufZone, setSelBufZone] = React.useState(() => new Set([0, 1, 2, 3, 4]));
       const bufZoneLabels = ['0\u201350 ft', '50\u2013100 ft', '100\u2013300 ft', 'HMZ', 'HMZ+300'];
       const toggleBufZone = (idx) => {
@@ -6703,20 +6346,27 @@ Default Moderate curve:
         if (!labelSets.tier) return;
         setSelTier(prev => prev || new Set(labelSets.tier));
         setSelChk(prev => prev || new Set(labelSets.chk));
-        setSelTi(prev => prev || new Set(labelSets.ti));
         setSelFish(prev => prev || new Set(labelSets.fish));
         setSelSrz(prev => prev || new Set(labelSets.srz));
         setSelMgr(prev => prev || new Set(labelSets.mgr));
         setSelZon(prev => prev || new Set(labelSets.zon));
         setSelBfw(prev => prev || new Set(labelSets.bfw));
         setSelHmz(prev => prev || new Set(labelSets.hmz));
+        setSelSal(prev => prev || new Set(labelSets.sal));
+        setSelSpecies(prev => prev || new Set(labelSets.species));
+        setSelTcat(prev => prev || new Set(labelSets.tcat));
+        setSelFcat(prev => prev || new Set(labelSets.fcat));
+        setSelScat(prev => prev || new Set(labelSets.scat));
         // Auto-apply initial (all-selected) filters
         setAppliedFilters(prev => prev || {
           selTier: new Set(labelSets.tier), selChk: new Set(labelSets.chk),
-          selTi: new Set(labelSets.ti), selFish: new Set(labelSets.fish),
+          selFish: new Set(labelSets.fish),
           selSrz: new Set(labelSets.srz), selMgr: new Set(labelSets.mgr),
           selZon: new Set(labelSets.zon), selBfw: new Set(labelSets.bfw),
-          selHmz: new Set(labelSets.hmz),
+          selHmz: new Set(labelSets.hmz), selSal: new Set(labelSets.sal),
+          selSpecies: new Set(labelSets.species),
+          selTcat: new Set(labelSets.tcat), selFcat: new Set(labelSets.fcat),
+          selScat: new Set(labelSets.scat),
           rRPF: [0, 100], rRPA: [0, 100], rComp: [-1, 1], rCH: [0, 300],
           rSol: [0, 12], rSlp: [0, 5], rWet: [0, 5],
           rPF: [0, 100], rPS: [0, 100], rPH: [0, 100], rRest: [0, 100],
@@ -6800,7 +6450,10 @@ Default Moderate curve:
         const dr = db.exec(
           `SELECT bid, str, rpf, rpa, ROUND(rpsf * rpsa / 100.0, 1) AS ci,
                   tier, srz, ${compDescSql} AS compDesc, mc, mh, pf, ps, ph, sol, slp, wet, mgr,
-                  cx, cy, rpsf, rpsa
+                  cx, cy, rpsf, rpsa,
+                  chk, fish, bfw, hmz, zon, jur,
+                  ti, tic, fi, fic, si, sic, ai,
+                  sal, sps, asp, af
            FROM bids WHERE ${where}
            ORDER BY ${sqlSort} ${dir}`
         );
@@ -6838,26 +6491,51 @@ Default Moderate curve:
         const arrEq = (a, b) => a[0] === b[0] && a[1] === b[1];
         return !(
           setEq(selTier, f.selTier) && setEq(selChk, f.selChk) &&
-          setEq(selTi, f.selTi) && setEq(selFish, f.selFish) &&
+          setEq(selFish, f.selFish) &&
           setEq(selSrz, f.selSrz) && setEq(selMgr, f.selMgr) &&
           setEq(selZon, f.selZon) && setEq(selBfw, f.selBfw) &&
-          setEq(selHmz, f.selHmz) &&
+          setEq(selHmz, f.selHmz) && setEq(selSal, f.selSal) &&
+          setEq(selSpecies, f.selSpecies) &&
+          setEq(selTcat, f.selTcat) && setEq(selFcat, f.selFcat) && setEq(selScat, f.selScat) &&
           arrEq(rRPF, f.rRPF) && arrEq(rRPA, f.rRPA) && arrEq(rComp, f.rComp) &&
           arrEq(rCH, f.rCH) && arrEq(rSol, f.rSol) && arrEq(rSlp, f.rSlp) &&
           arrEq(rWet, f.rWet) && arrEq(rPF, f.rPF) && arrEq(rPS, f.rPS) &&
           arrEq(rPH, f.rPH) && arrEq(rRest, f.rRest)
         );
-      }, [appliedFilters, selTier, selChk, selTi, selFish, selSrz, selMgr, selZon, selBfw, selHmz,
+      }, [appliedFilters, selTier, selChk, selFish, selSrz, selMgr, selZon, selBfw, selHmz,
+          selSal, selSpecies, selTcat, selFcat, selScat,
+          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest]);
+
+      // --- Per-section active filter badge counts (renders as a number on the section header) ---
+      const bidBadges = React.useMemo(() => {
+        const cat = (sel, labels) => (sel && sel.size !== (labels?.length || 0)) ? 1 : 0;
+        const rng = (val, lo, hi) => (val[0] !== lo || val[1] !== hi) ? 1 : 0;
+        return {
+          metrics: cat(selTier, labelSets.tier) +
+                   rng(rRPF, 0, 100) + rng(rRPA, 0, 100) + rng(rComp, -1, 1) +
+                   rng(rCH, 0, 300) + rng(rSol, 0, 12) + rng(rSlp, 0, 5) + rng(rWet, 0, 5) +
+                   rng(rPF, 0, 100) + rng(rPS, 0, 100) + rng(rPH, 0, 100) + rng(rRest, 0, 100),
+          fishSalmon: cat(selChk, labelSets.chk) + cat(selFish, labelSets.fish) +
+                      cat(selSal, labelSets.sal) + cat(selSpecies, labelSets.species),
+          impairment: cat(selTcat, labelSets.tcat) + cat(selFcat, labelSets.fcat) + cat(selScat, labelSets.scat),
+          river: (selBufZone.size !== 5 ? 1 : 0) + cat(selHmz, labelSets.hmz) +
+                 cat(selBfw, labelSets.bfw) + cat(selSrz, labelSets.srz),
+          admin: cat(selMgr, labelSets.mgr) + cat(selZon, labelSets.zon),
+        };
+      }, [labelSets, selTier, selChk, selFish, selSal, selSpecies, selTcat, selFcat, selScat,
+          selHmz, selBfw, selSrz, selMgr, selZon, selBufZone,
           rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest]);
 
       // --- Apply filters handler ---
       const applyFilters = () => {
         setAppliedFilters({
           selTier: new Set(selTier), selChk: new Set(selChk),
-          selTi: new Set(selTi), selFish: new Set(selFish),
+          selFish: new Set(selFish),
           selSrz: new Set(selSrz), selMgr: new Set(selMgr),
           selZon: new Set(selZon), selBfw: new Set(selBfw),
-          selHmz: new Set(selHmz),
+          selHmz: new Set(selHmz), selSal: new Set(selSal),
+          selSpecies: new Set(selSpecies),
+          selTcat: new Set(selTcat), selFcat: new Set(selFcat), selScat: new Set(selScat),
           rRPF: [...rRPF], rRPA: [...rRPA], rComp: [...rComp], rCH: [...rCH],
           rSol: [...rSol], rSlp: [...rSlp], rWet: [...rWet],
           rPF: [...rPF], rPS: [...rPS], rPH: [...rPH], rRest: [...rRest],
@@ -6879,20 +6557,26 @@ Default Moderate curve:
       const resetAll = () => {
         if (labelSets.tier) {
           setSelTier(new Set(labelSets.tier)); setSelChk(new Set(labelSets.chk));
-          setSelTi(new Set(labelSets.ti)); setSelFish(new Set(labelSets.fish));
+          setSelFish(new Set(labelSets.fish));
           setSelSrz(new Set(labelSets.srz)); setSelMgr(new Set(labelSets.mgr));
           setSelZon(new Set(labelSets.zon)); setSelBfw(new Set(labelSets.bfw));
-          setSelHmz(new Set(labelSets.hmz));
+          setSelHmz(new Set(labelSets.hmz)); setSelSal(new Set(labelSets.sal));
+          setSelSpecies(new Set(labelSets.species));
+          setSelTcat(new Set(labelSets.tcat)); setSelFcat(new Set(labelSets.fcat));
+          setSelScat(new Set(labelSets.scat));
         }
         setRRPF([0, 100]); setRRPA([0, 100]); setRComp([-1, 1]); setRCH([0, 300]);
         setRSol([0, 12]); setRSlp([0, 5]); setRWet([0, 5]);
         setRPF([0, 100]); setRPS([0, 100]); setRPH([0, 100]); setRRest([0, 100]);
         setAppliedFilters({
           selTier: new Set(labelSets.tier), selChk: new Set(labelSets.chk),
-          selTi: new Set(labelSets.ti), selFish: new Set(labelSets.fish),
+          selFish: new Set(labelSets.fish),
           selSrz: new Set(labelSets.srz), selMgr: new Set(labelSets.mgr),
           selZon: new Set(labelSets.zon), selBfw: new Set(labelSets.bfw),
-          selHmz: new Set(labelSets.hmz),
+          selHmz: new Set(labelSets.hmz), selSal: new Set(labelSets.sal),
+          selSpecies: new Set(labelSets.species),
+          selTcat: new Set(labelSets.tcat), selFcat: new Set(labelSets.fcat),
+          selScat: new Set(labelSets.scat),
           rRPF: [0, 100], rRPA: [0, 100], rComp: [-1, 1], rCH: [0, 300],
           rSol: [0, 12], rSlp: [0, 5], rWet: [0, 5],
           rPF: [0, 100], rPS: [0, 100], rPH: [0, 100], rRest: [0, 100],
@@ -6913,6 +6597,10 @@ Default Moderate curve:
         { key: 'mh', label: 'Canopy Ht', w: 55, fmt: v => v > 0 ? v?.toFixed(0) + ' ft' : '\u2014' },
         { key: 'pf', label: '% For', w: 40, fmt: v => v?.toFixed(0) },
         { key: 'sol', label: 'Solar', w: 42, fmt: v => v?.toFixed(1) },
+        { key: 'tic', label: 'Temp', w: 42, fmt: v => v ? `Cat ${v}` : '\u2014' },
+        { key: 'fic', label: 'Fecal', w: 42, fmt: v => v ? `Cat ${v}` : '\u2014' },
+        { key: 'sic', label: 'Sed', w: 42, fmt: v => v ? `Cat ${v}` : '\u2014' },
+        { key: 'sps', label: 'Salmon Species', w: 160, fmt: v => v || '\u2014' },
         { key: 'mgr', label: 'Owner', w: 80, fmt: v => v },
       ];
 
@@ -6996,12 +6684,22 @@ Default Moderate curve:
           { key: 'ci', hdr: 'Composite_Index' },
           { key: 'tier', hdr: 'Tier' },
           { key: 'srz', hdr: 'SR_Zone' },
-          { key: 'chk', hdr: 'Chinook' },
+          { key: 'chk', hdr: 'Spring_Chinook' },
+          { key: 'sal', hdr: 'Salmon_Present' },
+          { key: 'sps', hdr: 'Salmon_Species' },
           { key: 'ti', hdr: 'Temp_Impaired' },
+          { key: 'tic', hdr: 'Temp_Impaired_Cat' },
+          { key: 'fi', hdr: 'Fecal_Impaired' },
+          { key: 'fic', hdr: 'Fecal_Impaired_Cat' },
+          { key: 'si', hdr: 'Sediment_Impaired' },
+          { key: 'sic', hdr: 'Sediment_Impaired_Cat' },
+          { key: 'ai', hdr: 'Any_Impaired' },
           { key: 'fish', hdr: 'Fish_Access' },
           { key: 'bfw', hdr: 'BFW_Class' },
+          { key: 'hmz', hdr: 'HMZ' },
           { key: 'mgr', hdr: 'Ownership' },
           { key: 'zon', hdr: 'Zoning' },
+          { key: 'jur', hdr: 'County' },
           { key: 'compDesc', hdr: 'Composition_Desc' },
           { key: 'mc', hdr: 'Mean_Composition' },
           { key: 'mh', hdr: 'Mean_Canopy_Ht_ft' },
@@ -7009,6 +6707,8 @@ Default Moderate curve:
           { key: 'ps', hdr: 'Pct_Shrub' },
           { key: 'ph', hdr: 'Pct_Herb' },
           { key: 'sol', hdr: 'Solar_Push' },
+          { key: 'asp', hdr: 'Aspect_Deg' },
+          { key: 'af', hdr: 'Aspect_North_Factor' },
           { key: 'slp', hdr: 'Slope_Push' },
           { key: 'wet', hdr: 'Wetland_Push' },
           { key: 'cx', hdr: 'Centroid_X' },
@@ -7036,19 +6736,62 @@ Default Moderate curve:
             Filter BIDs by multiple criteria simultaneously. All filters are AND-combined. Adjust filters, then click <strong>Apply Filters</strong> to update the table and map.
           </div>
 
-          {/* Filters panel */}
+          {/* Filters panel — grouped collapsible sections */}
           <div className="bg-white rounded-lg shadow p-3 mb-4">
-            <div className="grid grid-cols-4 gap-3">
-              {/* Col 1: Priority + small binary filters */}
-              <div>
+
+            {/* Section 1: Restoration Metrics (default open) */}
+            <CollapsibleSection title="Restoration Metrics" defaultOpen={true} badge={bidBadges.metrics}>
+              <div style={{ marginBottom: 8 }}>
                 <FilterGroup title="Priority" labels={labelSets.tier || []} colors={TIER_COLORS} selected={selTier} setSelected={setSelTier} />
-                <FilterGroup title="Chinook" labels={labelSets.chk || []} colors={CHINOOK_COLORS} selected={selChk} setSelected={setSelChk} />
-                <FilterGroup title="Temp Impaired" labels={labelSets.ti || []} colors={TEMP_COLORS} selected={selTi} setSelected={setSelTi} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
+                <DualRangeSlider label="RP Final" min={0} max={100} step={1} value={rRPF} onChange={setRRPF} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Area RP %ile" min={0} max={100} step={1} value={rRPA} onChange={setRRPA} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Composition" min={-1} max={1} step={0.05} value={rComp} onChange={setRComp} fmt={v => v.toFixed(2)} />
+                <DualRangeSlider label="Canopy Ht (ft)" min={0} max={300} step={5} value={rCH} onChange={setRCH} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Solar Push" min={0} max={12} step={0.5} value={rSol} onChange={setRSol} fmt={v => v.toFixed(1)} />
+                <DualRangeSlider label="Slope Push" min={0} max={5} step={0.25} value={rSlp} onChange={setRSlp} fmt={v => v.toFixed(1)} />
+                <DualRangeSlider label="Wetland Push" min={0} max={5} step={0.25} value={rWet} onChange={setRWet} fmt={v => v.toFixed(1)} />
+                <DualRangeSlider label="% Forest" min={0} max={100} step={1} value={rPF} onChange={setRPF} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="% Shrub" min={0} max={100} step={1} value={rPS} onChange={setRPS} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="% Herb/Ground" min={0} max={100} step={1} value={rPH} onChange={setRPH} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="% Restorable" min={0} max={100} step={1} value={rRest} onChange={setRRest} fmt={v => v.toFixed(0)} />
+              </div>
+            </CollapsibleSection>
+
+            {/* Section 2: Fish / Salmon (default closed) */}
+            <CollapsibleSection title="Fish / Salmon" defaultOpen={false} badge={bidBadges.fishSalmon}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+                <FilterGroup title="Early Chinook" labels={labelSets.chk || []} colors={CHINOOK_COLORS} selected={selChk} setSelected={setSelChk} />
                 <FilterGroup title="Fish Access" labels={labelSets.fish || []} colors={FISH_COLORS} selected={selFish} setSelected={setSelFish} />
-                {/* Buffer Zone presence filter */}
-                <div style={{ marginTop: 4 }}>
+                <FilterGroup title="Salmon Present" labels={labelSets.sal || []} colors={{ 'Y': '#dc2626', 'N': '#6b7280' }} selected={selSal} setSelected={setSelSal} />
+                <div className="md:col-span-2">
+                  <FilterGroup title="Salmon Species" labels={labelSets.species || []} colors={{
+                    'Spring Chinook': '#dc2626', 'Fall Chinook': '#ef4444', 'Coho': '#f97316',
+                    'Summer Steelhead': '#eab308', 'Winter Steelhead': '#84cc16',
+                    'Fall Chum': '#10b981', 'Pink (Odd Year)': '#06b6d4',
+                    'Sockeye': '#0ea5e9', 'Dolly Varden / Bull Trout': '#8b5cf6'
+                  }} selected={selSpecies} setSelected={setSelSpecies} />
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Section 3: Impairment (default closed) */}
+            <CollapsibleSection title="Impairment" defaultOpen={false} badge={bidBadges.impairment}>
+              <div className="grid grid-cols-1 gap-y-2">
+                <FilterGroup title="ECY Temperature Impaired Category" labels={labelSets.tcat || []} colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }} selected={selTcat} setSelected={setSelTcat} />
+                <FilterGroup title="ECY Fecal Impaired Category" labels={labelSets.fcat || []} colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }} selected={selFcat} setSelected={setSelFcat} />
+                <FilterGroup title="ECY Sediment Impaired Category" labels={labelSets.scat || []} colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }} selected={selScat} setSelected={setSelScat} />
+              </div>
+            </CollapsibleSection>
+
+            {/* Section 4: River Context (default closed) */}
+            <CollapsibleSection title="River Context" defaultOpen={false} badge={bidBadges.river}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                {/* Buffer Zones */}
+                <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <span style={{ fontSize: 10, fontWeight: 600, color: '#374151' }}>Buffer Zones</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: '#374151', minWidth: 60 }}>Buffer Zones</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {bufZoneLabels.map((lbl, i) => {
@@ -7068,33 +6811,21 @@ Default Moderate curve:
                     })}
                   </div>
                 </div>
-                <FilterGroup title="HMZ" labels={labelSets.hmz || []} colors={{ 'Y': '#f59e0b', 'N': '#6b7280' }} selected={selHmz} setSelected={setSelHmz} />
+                <FilterGroup title="Historic Migration Zone (HMZ)" labels={labelSets.hmz || []} colors={{ 'Y': '#f59e0b', 'N': '#6b7280' }} selected={selHmz} setSelected={setSelHmz} />
+                <FilterGroup title="Bankfull Width (BfW)" labels={labelSets.bfw || []} colors={BFW_COLORS} selected={selBfw} setSelected={setSelBfw} />
+                <FilterGroup title="Stream Region Zone (SR Zone)" labels={labelSets.srz || []} colors={SR_ZONE_COLORS} selected={selSrz} setSelected={setSelSrz} />
               </div>
-              {/* Col 2: BFW + SR Zone */}
-              <div>
-                <FilterGroup title="BFW Class" labels={labelSets.bfw || []} colors={BFW_COLORS} selected={selBfw} setSelected={setSelBfw} />
-                <FilterGroup title="SR Zone" labels={labelSets.srz || []} colors={SR_ZONE_COLORS} selected={selSrz} setSelected={setSelSrz} />
-              </div>
-              {/* Col 3: Ownership + Zoning stacked */}
-              <div>
-                <FilterGroup title="Ownership" labels={labelSets.mgr || []} colors={MANAGER_CAT_COLORS} selected={selMgr} setSelected={setSelMgr} />
+            </CollapsibleSection>
+
+            {/* Section 5: Administrative (default closed) */}
+            <CollapsibleSection title="Administrative" defaultOpen={false} badge={bidBadges.admin}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                <FilterGroup title="Owner" labels={labelSets.mgr || []} colors={MANAGER_CAT_COLORS} selected={selMgr} setSelected={setSelMgr} />
                 <FilterGroup title="Zoning" labels={labelSets.zon || []} colors={ZONING_COLORS} selected={selZon} setSelected={setSelZon} />
               </div>
-              {/* Col 4: range sliders */}
-              <div>
-                <DualRangeSlider label="RP Final" min={0} max={100} step={1} value={rRPF} onChange={setRRPF} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="Area RP %ile" min={0} max={100} step={1} value={rRPA} onChange={setRRPA} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="Composition" min={-1} max={1} step={0.05} value={rComp} onChange={setRComp} fmt={v => v.toFixed(2)} />
-                <DualRangeSlider label="Canopy Ht (ft)" min={0} max={300} step={5} value={rCH} onChange={setRCH} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="Solar Push" min={0} max={12} step={0.5} value={rSol} onChange={setRSol} fmt={v => v.toFixed(1)} />
-                <DualRangeSlider label="Slope Push" min={0} max={5} step={0.25} value={rSlp} onChange={setRSlp} fmt={v => v.toFixed(1)} />
-                <DualRangeSlider label="Wetland Push" min={0} max={5} step={0.25} value={rWet} onChange={setRWet} fmt={v => v.toFixed(1)} />
-                <DualRangeSlider label="% Forest" min={0} max={100} step={1} value={rPF} onChange={setRPF} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="% Shrub" min={0} max={100} step={1} value={rPS} onChange={setRPS} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="% Herb/Ground" min={0} max={100} step={1} value={rPH} onChange={setRPH} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="% Restorable" min={0} max={100} step={1} value={rRest} onChange={setRRest} fmt={v => v.toFixed(0)} />
-              </div>
-            </div>
+            </CollapsibleSection>
+
+            {/* Action bar — stays outside collapsible sections */}
             <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200">
               <button onClick={applyFilters}
                 className="text-xs px-4 py-1.5 rounded text-white font-semibold"
@@ -7204,7 +6935,6 @@ Default Moderate curve:
       { id: 'scoring_lab', icon: '\u{1F52C}', label: 'Scoring Lab' },
       { id: 'bank_explorer', icon: '\u{1F332}', label: 'Bank Explorer' },
       { id: 'solar_compare', icon: '\u{2600}\uFE0F', label: 'Solar Comparison' },
-      { id: 'bivariate', icon: '\u{1F4CA}', label: 'Bivariate Analysis' },
       { id: 'bid_query', icon: '\u{1F50E}', label: 'BID Query' },
       { id: 'model_ref', icon: '\u{1F916}', label: 'Model Reference', right: true },
     ];
@@ -7355,7 +7085,6 @@ Default Moderate curve:
           {activeTab === 'bfw' && <BFWPanel data={data} />}
           {activeTab === 'solar_compare' && <SolarComparisonPanel data={data} />}
           {activeTab === 'composition' && <CompositionPanel data={data} />}
-          {activeTab === 'bivariate' && <BivariatePanel data={data} />}
           {activeTab === 'zoning' && <ZoningPanel data={data} />}
           {activeTab === 'priority' && <PriorityPanel data={data} />}
           {activeTab === 'bank_explorer' && <BankExplorerPanel data={data} sharedBidData={sharedBidData} pendingBID={pendingBID} setPendingBID={setPendingBID} onBIDSelect={(bid) => updateHash('bank_explorer', bid)} />}
