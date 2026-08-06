@@ -116,8 +116,8 @@
       'P1': '#dc2626', 'P2': '#f59e0b', 'P3': '#1193BA', 'P4': '#059669', 'P5': '#9ca3af',
     };
     const TIER_LABELS = {
-      'P1': 'P1: Chinook + Temp Impaired',
-      'P2': 'P2: Chinook (no temp) / Fish + Temp',
+      'P1': 'P1: Early Chinook + Temp Impaired',
+      'P2': 'P2: Early Chinook (no temp) / Fish + Temp',
       'P3': 'P3: Fish-bearing mixed',
       'P4': 'P4: Fish-bearing other (no temp)',
       'P5': 'P5: Gradient-accessible',
@@ -258,7 +258,7 @@
         { name: 'Score Distributions', id: 'scores', desc: 'Histograms and statistics for base RP, solar-adjusted, and final RP scores. Compare score distributions across domains and identify scoring patterns.' },
         { name: 'Zone & BID Analysis', id: 'zones', desc: 'Zone-level breakdowns of landcover, scoring metrics (M, D, C, I), and area. Includes BID-level score distributions and per-zone box plots.' },
         { name: 'Radar Profiles', id: 'radar', desc: 'Radar charts showing zone condition profiles across buffer distances. Compare how landcover composition and scoring metrics change from streamside to upland.' },
-        { name: 'Chinook & Fish', id: 'chinook', desc: 'Score distributions segmented by Spring Chinook presence, fish-bearing status, and temperature impairment. Identifies priority overlaps for habitat protection.' },
+        { name: 'Early Chinook & Fish', id: 'chinook', desc: 'Score distributions segmented by Early (Spring) Chinook presence, fish-bearing status, and temperature impairment. Identifies priority overlaps for habitat protection.' },
         { name: 'SR Zones', id: 'sr_zones', desc: 'Breakdown by Salmon Recovery Zone — score distributions, solar exposure, HMZ presence, and landcover composition for each zone in the watershed.' },
         { name: 'Manager', id: 'managers', desc: 'Score distributions by land manager category (Federal, State, Private, Tribal, etc.). Shows which management entities hold the highest-priority restoration opportunities.' },
         { name: 'BFW & River Size', id: 'bfw', desc: 'Analysis by bankfull width class — how stream size relates to riparian condition, HMZ presence, and scoring. Includes BFW distribution histograms.' },
@@ -294,7 +294,7 @@
               The framework evaluates landcover composition, forest structure, canopy density, and height across multiple buffer zones (0–50 ft, 50–100 ft, 100–300 ft, HMZ, and HMZ+300).
               Scores are organized into four domains — Forest, Shrub/Woodland, Shrub, and Herb/Ground — where lower base scores indicate better existing condition and higher scores indicate greater restoration need.
               Base scores are then adjusted by three push factors — solar radiation deficit (shade need), bank slope (erosion risk), and wetland proximity (ecological connectivity) — which increase priority for banks with greater restoration benefit.
-              Final scores are stratified into priority tiers (P1–P5) based on Chinook habitat, Nooksack zone membership, fish-bearing status, and temperature impairment.
+              Final scores are stratified into priority tiers (P1–P5) based on Early Chinook habitat, Nooksack zone membership, fish-bearing status, and temperature impairment.
             </p>
           </div>
 
@@ -1300,16 +1300,16 @@
               <div className="space-y-1 text-xs font-mono bg-gray-50 dark:bg-gray-700/50 rounded p-3 text-gray-600 dark:text-gray-400">
                 <div>I = 0.35*M + 0.35*D + 0.30*C <span className="text-gray-400">// same as D1</span></div>
                 <div className="font-bold text-esa-teal">RP = 55 + 15 * (1 - I)</div>
-                <div className="pt-1 text-gray-400">High intactness -> RP near 55</div>
-                <div className="text-gray-400">Low intactness -> RP near 70</div>
+                <div className="pt-1 text-gray-400">High intactness → RP near 55</div>
+                <div className="text-gray-400">Low intactness → RP near 70</div>
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
               <h4 className="text-sm font-semibold mb-2" style={{ color: DOMAIN_COLORS.D3_Shrub_NoComp }}>D3: Shrub w/o Composition (RP 65-80)</h4>
               <div className="space-y-1 text-xs font-mono bg-gray-50 dark:bg-gray-700/50 rounded p-3 text-gray-600 dark:text-gray-400">
                 <div className="font-bold text-esa-teal">RP = 80 - 15 * clamp(FH / 12, 0, 1)</div>
-                <div className="pt-1 text-gray-400">Tall shrub (FH >= 12 ft) -> RP = 65</div>
-                <div className="text-gray-400">Short/sparse (FH ~ 0) -> RP = 80</div>
+                <div className="pt-1 text-gray-400">Tall shrub (FH ≥ 12 ft) → RP = 65</div>
+                <div className="text-gray-400">Short/sparse (FH ~ 0) → RP = 80</div>
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
@@ -1317,8 +1317,8 @@
               <div className="space-y-1 text-xs font-mono bg-gray-50 dark:bg-gray-700/50 rounded p-3 text-gray-600 dark:text-gray-400">
                 <div>SPTH_MIN = 100, SPTH_MAX = 245</div>
                 <div className="font-bold text-esa-teal">RP = 80 + 15 * clamp((SPTH - 100) / 145, 0, 1)</div>
-                <div className="pt-1 text-gray-400">Low SPTH (100) -> RP = 80</div>
-                <div className="text-gray-400">High SPTH (245) -> RP = 95</div>
+                <div className="pt-1 text-gray-400">Low SPTH (100) → RP = 80</div>
+                <div className="text-gray-400">High SPTH (245) → RP = 95</div>
               </div>
             </div>
           </div>
@@ -1741,17 +1741,17 @@
     // ============================================================
     function ChinookFishPanel({ data }) {
       const cf = data.chinook_fish;
-      if (!cf) return <div className="text-gray-500">No Chinook/Fish data. Regenerate with FC2.</div>;
+      if (!cf) return <div className="text-gray-500">No Early Chinook / Fish data. Regenerate with FC2.</div>;
 
       const total = cf.counts.chinook_y + cf.counts.chinook_n;
 
-      // Overlay histogram: Chinook Y vs N
+      // Overlay histogram: Early Chinook Y vs N
       const chinY = cf.by_chinook?.Y?.rp_solar_hist;
       const chinN = cf.by_chinook?.N?.rp_solar_hist;
       const chinOverlay = chinY && chinN ? chinY.counts.map((_, i) => ({
         bin: Math.round(chinY.bins[i]),
-        'Chinook': chinY.counts[i],
-        'Non-Chinook': chinN.counts[i],
+        'Early Chinook': chinY.counts[i],
+        'No Early Chinook': chinN.counts[i],
       })) : [];
 
       // Overlay histogram: Fish vs Gradient
@@ -1764,7 +1764,7 @@
       })) : [];
 
       // Group comparison data
-      const groupLabels = { 'Y_fish': 'Chinook + Fish', 'Y_gradient': 'Chinook + Gradient', 'N_fish': 'Non-Chin + Fish', 'N_gradient': 'Non-Chin + Gradient' };
+      const groupLabels = { 'Y_fish': 'Early Chinook + Fish', 'Y_gradient': 'Early Chinook + Gradient', 'N_fish': 'No Early Chinook + Fish', 'N_gradient': 'No Early Chinook + Gradient' };
       const groupData = Object.entries(cf.by_group).map(([k, v]) => ({
         group: groupLabels[k] || k,
         'Mean RP': v.rp_solar_stats?.mean || 0,
@@ -1774,13 +1774,13 @@
       return (
         <div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <StatCard label="Chinook-Bearing" value={fmtN(cf.counts.chinook_y)} sub={`count of BIDs · ${fmtPct(cf.counts.chinook_y, total)}`} />
-            <StatCard label="Non-Chinook" value={fmtN(cf.counts.chinook_n)} sub={`count of BIDs · ${fmtPct(cf.counts.chinook_n, total)}`} />
+            <StatCard label="Early Chinook-Bearing" value={fmtN(cf.counts.chinook_y)} sub={`count of BIDs · ${fmtPct(cf.counts.chinook_y, total)}`} />
+            <StatCard label="No Early Chinook" value={fmtN(cf.counts.chinook_n)} sub={`count of BIDs · ${fmtPct(cf.counts.chinook_n, total)}`} />
             <StatCard label="Fish-Bearing" value={fmtN(cf.counts.fish)} sub={`count of BIDs · ${fmtPct(cf.counts.fish, total)}`} />
             <StatCard label="Gradient-Only" value={fmtN(cf.counts.gradient)} sub={`count of BIDs · ${fmtPct(cf.counts.gradient, total)}`} />
           </div>
 
-          <SectionTitle>Cross-Tab: Chinook x Fish Type</SectionTitle>
+          <SectionTitle>Cross-Tab: Early Chinook × Fish Type</SectionTitle>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 overflow-x-auto mb-6">
             <table className="w-full text-sm">
               <thead>
@@ -1794,7 +1794,7 @@
               <tbody>
                 {cf.cross_tab.map((r, i) => (
                   <tr key={i} className="border-b dark:border-gray-700/50">
-                    <td className="py-1.5 px-2">{r.chinook === 'Y' ? 'Chinook' : 'Non-Chinook'} + {r.fish_simple}</td>
+                    <td className="py-1.5 px-2">{r.chinook === 'Y' ? 'Early Chinook' : 'No Early Chinook'} + {r.fish_simple}</td>
                     <td className="text-right py-1.5 px-2">{fmtN(r.count)}</td>
                     <td className="text-right py-1.5 px-2">{fmtPct(r.count, total)}</td>
                     <td className="text-right py-1.5 px-2">{fmtDec(r.mean_rp_solar)}</td>
@@ -1804,7 +1804,7 @@
             </table>
           </div>
 
-          <SectionTitle>RP Distribution by Chinook Status</SectionTitle>
+          <SectionTitle>RP Distribution by Early Chinook Status</SectionTitle>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
             <ResponsiveContainer width="100%" height={350}>
               <ComposedChart data={chinOverlay} margin={{ top: 30, right: 10, left: 5, bottom: 25 }}>
@@ -1814,8 +1814,8 @@
                   label={{ value: 'BID Count', angle: -90, position: 'insideLeft', offset: 10, fontSize: 10, fill: '#9ca3af' }} />
                 <Tooltip />
                 <Legend verticalAlign="top" height={28} />
-                <Bar dataKey="Non-Chinook" fill={CHINOOK_COLORS.N} fillOpacity={0.6} name="Non-Chinook" />
-                <Bar dataKey="Chinook" fill={CHINOOK_COLORS.Y} fillOpacity={0.8} name="Chinook" />
+                <Bar dataKey="No Early Chinook" fill={CHINOOK_COLORS.N} fillOpacity={0.6} name="No Early Chinook" />
+                <Bar dataKey="Early Chinook" fill={CHINOOK_COLORS.Y} fillOpacity={0.8} name="Early Chinook" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -1842,7 +1842,7 @@
               <BarChart data={groupData} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
                 <XAxis dataKey="group" tick={{ fontSize: 10 }} angle={-15} textAnchor="end"
-                  label={{ value: 'Fish/Chinook Group', position: 'bottom', offset: 12, fontSize: 11, fill: '#6b7280' }} />
+                  label={{ value: 'Fish / Early Chinook Group', position: 'bottom', offset: 12, fontSize: 11, fill: '#6b7280' }} />
                 <YAxis domain={[0, 80]} tick={{ fontSize: 10 }}
                   label={{ value: 'Mean RP Score', angle: -90, position: 'insideLeft', offset: 0, fontSize: 10, fill: '#9ca3af' }} />
                 <Tooltip formatter={(v, name, props) => [fmtDec(v), `${name} (n=${fmtN(props.payload.count)})`]} />
@@ -2384,11 +2384,11 @@
         count: m.count,
       })).sort((a, b) => b.delta - a.delta);
 
-      // Delta by Chinook
+      // Delta by Early Chinook
       const chinComp = ['Y', 'N'].map(c => {
         const d = data.chinook_fish?.by_chinook?.[c];
         return d ? {
-          name: c === 'Y' ? 'Chinook' : 'Non-Chinook',
+          name: c === 'Y' ? 'Early Chinook' : 'No Early Chinook',
           delta: (d.rp_solar_stats?.mean || 0) - (d.rp_stats?.mean || 0),
           pre: d.rp_stats?.mean || 0,
           post: d.rp_solar_stats?.mean || 0,
@@ -2430,11 +2430,26 @@
         );
       }
 
+      const aspectBoost = sol.aspect_boost ?? 0.5;
+      const aspectMean = sol.aspect_factor_stats?.mean;
       return (
         <div>
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 mb-6 text-sm text-amber-800 dark:text-amber-300">
-            Solar risk scoring applies an additive push to BID-level RP based on solar exposure. Higher solar + worse condition = larger push.
-            Formula: <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded">push = solar_risk × {maxPushVal} × (RP/100)^{curveFactor.toFixed(1)}</code>
+            <div className="font-semibold mb-1">Solar risk scoring with aspect weighting (May 2026)</div>
+            <p className="mb-2">
+              Raw bank solar exposure (<code>SolarMEAN</code>) is multiplied by a <strong>signed cosine of bank aspect</strong> before percentile-ranking, so
+              south-bank canopy (north-facing aspect) gets a +{Math.round(aspectBoost * 100)}% boost, north-bank canopy (south-facing) gets a −{Math.round(aspectBoost * 100)}% reduction, and east/west banks are neutral. South-bank shade is more
+              valuable for midday channel temperature defense, so the same raw solar reading translates to a larger push on a south-facing bank.
+            </p>
+            <div className="font-mono text-xs leading-snug bg-amber-100 dark:bg-amber-800/40 px-2 py-1.5 rounded space-y-0.5">
+              <div>aspect_factor = cos(aspect)  · range [−1, +1] · {aspectMean != null ? `dataset mean ${aspectMean.toFixed(3)}` : ''}</div>
+              <div>combined_solar = SolarMEAN × (1 + {aspectBoost} × aspect_factor)</div>
+              <div>solar_risk = percentile_rank(combined_solar)  · across all BIDs</div>
+              <div>push = solar_risk × {maxPushVal} × (RP/100)^{curveFactor.toFixed(1)}</div>
+            </div>
+            <p className="mt-2 text-xs italic">
+              This panel isolates the solar/aspect effect only — slope push and wetland push are separate adjustments stacked on top in the final RP score.
+            </p>
           </div>
 
           {sol.bid_data && (
@@ -2442,15 +2457,19 @@
               <h4 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Solar Push Parameters</h4>
               <SliderRow label="Max Solar Push (pts)" value={maxPushVal} onChange={setMaxPushVal} min={0} max={25} step={1} />
               <SliderRow label="Curve Factor" value={curveFactor} onChange={setCurveFactor} min={0.5} max={3.0} step={0.1} />
+              <p className="text-xs text-gray-400 italic mt-2">
+                Production values: max push <strong>12</strong> pts, curve <strong>1.2</strong>, aspect boost <strong>{aspectBoost}</strong>. Sliders only affect the post-solar histogram below; aspect boost is fixed in the underlying data.
+              </p>
             </div>
           )}
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
             <StatCard label="Max Solar Push" value={maxPushVal} sub="points · progressive curve max" />
-            <StatCard label="Mean Push" value={fmtDec(meanPushCalc)} sub="points per BID" />
-            <StatCard label="Max Push (actual)" value={fmtDec(maxPushActual)} sub="points · highest BID" />
-            <StatCard label="Pre-Solar Mean RP" value={fmtDec(preMean)} sub="mean RP score · before solar push" />
-            <StatCard label="Post-Solar Mean RP" value={fmtDec(postMeanCalc)} sub={delta != null ? `mean RP score · +${fmtDec(delta)} pts from solar` : 'mean RP score · after solar push'} />
+            <StatCard label="Aspect Boost" value={`±${Math.round(aspectBoost * 100)}%`} sub="N-facing boost / S-facing reduction" />
+            <StatCard label="Mean Aspect Factor" value={aspectMean != null ? aspectMean.toFixed(2) : '—'} sub={aspectMean != null && aspectMean < 0 ? 'most banks face south (reduced)' : 'most banks face north (boosted)'} />
+            <StatCard label="Mean Push" value={fmtDec(meanPushCalc)} sub="points per BID · post-aspect" />
+            <StatCard label="Pre-Solar Mean RP" value={fmtDec(preMean)} sub="condition only · no pushes" />
+            <StatCard label="Post-Solar Mean RP" value={fmtDec(postMeanCalc)} sub={delta != null ? `+${fmtDec(delta)} pts from solar+aspect` : 'after solar+aspect push'} />
           </div>
 
           <SectionTitle>Pre-Solar vs Post-Solar RP Distribution</SectionTitle>
@@ -2463,14 +2482,22 @@
                   label={{ value: 'BID Count', angle: -90, position: 'insideLeft', offset: 10, fontSize: 10, fill: '#9ca3af' }} />
                 <Tooltip />
                 <Legend verticalAlign="top" height={28} />
-                <Bar dataKey="Pre-Solar" fill="#66CAD8" fillOpacity={0.7} name="Pre-Solar RP" />
-                <Line type="monotone" dataKey="Post-Solar" stroke="#ef4444" strokeWidth={2.5} dot={false} name="Post-Solar RP" />
+                <Bar dataKey="Pre-Solar" fill="#66CAD8" fillOpacity={0.7} name="Pre-Solar RP (RP_norm)" />
+                <Line type="monotone" dataKey="Post-Solar" stroke="#ef4444" strokeWidth={2.5} dot={false} name="Post-Solar RP (RP_norm + solar_push)" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
 
+          <SectionTitle>Solar &amp; Aspect Inputs</SectionTitle>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            <strong>Raw SolarMEAN</strong> is the bank-level direct solar input. <strong>Combined Solar</strong> is the aspect-weighted version actually used to compute solar_risk. <strong>Aspect Factor</strong> is signed cosine of bank aspect (+1 = N-facing, −1 = S-facing). The push distribution shows the resulting points added per BID.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <HistogramChart histData={sol.solar_mean_hist} title="Raw SolarMEAN Distribution" xLabel="Solar Radiation (WH/m²)" color="#f59e0b" showStats stats={sol.solar_mean_stats} />
+            <HistogramChart histData={sol.combined_solar_hist} title="Combined Solar (aspect-weighted) Distribution" xLabel="Aspect-Weighted Solar (WH/m²)" color="#dc2626" showStats stats={sol.combined_solar_stats} />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <HistogramChart histData={sol.solar_mean_hist} title="SolarMEAN Distribution (all BIDs)" xLabel="Solar Radiation (WH/m²)" color="#f59e0b" showStats stats={sol.solar_mean_stats} />
+            <HistogramChart histData={sol.aspect_factor_hist} title="Aspect Factor Distribution (signed cosine)" xLabel="Aspect Factor (−1 S ← E/W → N +1)" color="#1193BA" showStats stats={sol.aspect_factor_stats} />
             <HistogramChart histData={sol.solar_push_hist} title="Solar Push Distribution (points added)" xLabel="RP Points Added" color="#ef4444" showStats stats={sol.solar_push_stats} />
           </div>
 
@@ -2485,7 +2512,7 @@
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DeltaBarChart chartData={chinComp} title="Delta by Chinook Status" height={140} colorKey={{'Chinook': CHINOOK_COLORS.Y, 'Non-Chinook': CHINOOK_COLORS.N}} />
+            <DeltaBarChart chartData={chinComp} title="Delta by Early Chinook Status" height={140} colorKey={{'Early Chinook': CHINOOK_COLORS.Y, 'No Early Chinook': CHINOOK_COLORS.N}} />
             <DeltaBarChart chartData={fishComp} title="Delta by Fish Type" height={140} colorKey={{'Fish-Bearing': FISH_COLORS.fish, 'Gradient': FISH_COLORS.gradient}} />
           </div>
 
@@ -2505,7 +2532,7 @@
                 {[
                   { header: 'SR Zones', rows: srComp },
                   { header: 'Manager', rows: mgrComp },
-                  { header: 'Chinook / Fish', rows: [...chinComp, ...fishComp] },
+                  { header: 'Early Chinook / Fish', rows: [...chinComp, ...fishComp] },
                 ].map(section => (
                   <React.Fragment key={section.header}>
                     <tr className="bg-gray-50 dark:bg-gray-700/30">
@@ -2539,284 +2566,139 @@
       const [groupBy, setGroupBy] = React.useState('zone');
 
       const GROUP_BY_OPTIONS = [
-        { id: 'tier', label: 'Priority Tier', dataKey: 'by_tier' },
-        { id: 'chk',  label: 'Early Chinook', dataKey: 'by_chinook' },
-        { id: 'fish', label: 'Fish Access', dataKey: 'by_temp' },
-        { id: 'zone', label: 'SR Zone', dataKey: 'by_zone' },
-        { id: 'zon',  label: 'Zoning', dataKey: 'by_zoning' },
-        { id: 'own',  label: 'Owner', dataKey: 'by_ownership' },
-        { id: 'bfw',  label: 'Stream Size', dataKey: 'by_bfw' },
-        { id: 'hmz',  label: 'HMZ', dataKey: 'by_hmz' },
+        { id: 'tier', label: 'Priority Tier' },
+        { id: 'chk',  label: 'Early Chinook' },
+        { id: 'fish', label: 'Fish Access' },
+        { id: 'zone', label: 'SR Zone' },
+        { id: 'zon',  label: 'Zoning' },
+        { id: 'own',  label: 'Owner' },
+        { id: 'bfw',  label: 'Stream Size' },
+        { id: 'hmz',  label: 'HMZ' },
+        { id: 'tcat', label: 'Temperature Impaired Category' },
       ];
+      const gbOpt = GROUP_BY_OPTIONS.find(o => o.id === groupBy) || GROUP_BY_OPTIONS[0];
 
-      // --- Categorical filter state (defaults: all selected) ---
-      const [selZone, setSelZone] = React.useState(() => new Set(comp.sr_zone_labels || []));
-      const [selTier, setSelTier] = React.useState(() => new Set(comp.tier_labels || []));
-      const [selChk, setSelChk]   = React.useState(() => new Set(comp.chk_labels || []));
-      const [selFish, setSelFish] = React.useState(() => new Set(comp.fish_access_labels || []));
-      const [selZon, setSelZon]   = React.useState(() => new Set(comp.zon_labels || []));
-      const [selOwn, setSelOwn]   = React.useState(() => new Set(comp.own_labels || []));
-      const [selBfw, setSelBfw]   = React.useState(() => new Set(comp.bfw_labels || []));
-      const [selHmz, setSelHmz]   = React.useState(() => new Set(comp.hmz_labels || []));
-      const [selSal, setSelSal]   = React.useState(() => new Set(comp.sal_labels || []));
-      const [selSpecies, setSelSpecies] = React.useState(() => new Set(comp.species_labels || []));
-      const [selTcat, setSelTcat] = React.useState(() => new Set(comp.tcat_labels || []));
-      const [selFcat, setSelFcat] = React.useState(() => new Set(comp.fcat_labels || []));
-      const [selScat, setSelScat] = React.useState(() => new Set(comp.scat_labels || []));
-      // Buffer zone filter: indices 0-4 map to 50,100,300,hmz,hmz300. Index 0 (50ft) always on.
-      const [selBufZone, setSelBufZone] = React.useState(() => new Set([0, 1, 2, 3, 4]));
-      const bufZoneLabels = comp.buf_zone_labels || ['0–50 ft', '50–100 ft', '100–300 ft', 'HMZ', 'HMZ+300'];
-      const toggleBufZone = (idx) => {
-        if (idx === 0) return; // 50ft always on
-        const next = new Set(selBufZone);
-        if (next.has(idx)) {
-          next.delete(idx);
-        } else {
-          next.add(idx);
-          if (idx === 2 && !next.has(1)) next.add(1); // checking 300 auto-checks 100
-        }
-        setSelBufZone(next);
-      };
+      // Color palette lookup for the canopy-height-vs-composition scatter coloring
+      const COMP_BFW_COLORS = { 'Headwater/Ditch': '#66CAD8', 'Small Stream': '#1193BA', 'Medium Stream': '#0B7A9E', 'Large Stream': '#004562', 'Mainstem': '#002D42' };
+      const COMP_HMZ_COLORS = { 'Y': '#f59e0b', 'N': '#6b7280' };
+      const TCAT_COLORS = { 'Not Impaired': '#10b981', '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af',
+                            '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' };
+      const COLOR_MAPS = { zone: SR_ZONE_COLORS, tier: TIER_COLORS, chk: CHINOOK_COLORS,
+        fish: FISH_COLORS, zon: ZONING_COLORS, own: MANAGER_CAT_COLORS,
+        bfw: COMP_BFW_COLORS, hmz: COMP_HMZ_COLORS, tcat: TCAT_COLORS };
 
-      // --- Slider state (full-range defaults match BID Query) ---
-      const [rRPF, setRRPF]   = React.useState([0, 100]);
-      const [rRPA, setRRPA]   = React.useState([0, 100]);
-      const [rComp, setRComp] = React.useState([-1, 1]);
-      const [rCH, setRCH]     = React.useState([0, 300]);
-      const [rSol, setRSol]   = React.useState([0, 12]);
-      const [rSlp, setRSlp]   = React.useState([0, 5]);
-      const [rWet, setRWet]   = React.useState([0, 5]);
-      const [rPF, setRPF]     = React.useState([0, 100]);
-      const [rPS, setRPS]     = React.useState([0, 100]);
-      const [rPH, setRPH]     = React.useState([0, 100]);
-      const [rRest, setRRest] = React.useState([0, 100]);
-
-      const toggleItem = (set, setter, item) => {
-        const next = new Set(set);
-        next.has(item) ? next.delete(item) : next.add(item);
-        setter(next);
-      };
-      const toggleAll = (labels, set, setter) => {
-        setter(set.size === labels.length ? new Set() : new Set(labels));
-      };
-
-      // --- Parse scatter data (30 values per point: 13 base + 5 buffer zone flags + 12 new fields) ---
+      // Parse trimmed scatter rows (13 elements per BID — see preprocessor for layout).
+      // Each row corresponds to one D1 Forest BID.
       const scatterPoints = React.useMemo(() => {
         if (!comp.scatter_data) return [];
-        const speciesLbls = comp.species_labels || [];
         return comp.scatter_data.map(row => {
-          // Decode 9-bit species mask to label list
-          const mask = row[19] | 0;
-          const speciesList = [];
-          for (let i = 0; i < speciesLbls.length; i++) {
-            if (mask & (1 << i)) speciesList.push(speciesLbls[i]);
-          }
-          const pf = row[27] || 0, ps = row[28] || 0, ph = row[29] || 0;
+          const tcatLabel = (comp.tcat_labels || [])[row[12]] || '';
           return {
-            mean_comp: row[0], std_comp: row[1], pct_forest: row[2], rp_final: row[3],
-            mean_ch: row[10] || 0,
-            zone: (comp.sr_zone_labels || [])[row[4]] || 'Unknown',
-            tier: (comp.tier_labels || [])[row[5]] || 'P5',
-            chk:  (comp.chk_labels  || [])[row[6]] || 'N',
+            mean_comp: row[0],
+            std_comp:  row[1],
+            rp_final:  row[2],
+            mean_ch:   row[3] || 0,
+            zone: (comp.sr_zone_labels     || [])[row[4]] || 'Unknown',
+            tier: (comp.tier_labels        || [])[row[5]] || 'P5',
+            chk:  (comp.chk_labels         || [])[row[6]] || 'N',
             fish: (comp.fish_access_labels || [])[row[7]] || 'gradient',
-            zon:  (comp.zon_labels  || [])[row[8]] || 'Unknown',
-            own:  (comp.own_labels  || [])[row[9]] || 'Private/Unknown',
-            bfw:  (comp.bfw_labels  || [])[row[11]] || 'Headwater/Ditch',
-            hmz:  (comp.hmz_labels  || [])[row[12]] || 'N',
-            bufZones: [row[13], row[14], row[15], row[16], row[17]],
-            sal:  (comp.sal_labels || [])[row[18]] || 'N',
-            speciesList,
-            tcat: (comp.tcat_labels || [])[row[20]] || '',
-            fcat: (comp.fcat_labels || [])[row[21]] || '',
-            scat: (comp.scat_labels || [])[row[22]] || '',
-            solar_push: row[23] || 0,
-            slope_push: row[24] || 0,
-            wetland_push: row[25] || 0,
-            rp_area_pctile: row[26] || 0,
-            pf, ps, ph,
-            rest: Math.min(100, Math.round(pf + ps + ph)),
+            zon:  (comp.zon_labels         || [])[row[8]] || 'Unknown',
+            own:  (comp.own_labels         || [])[row[9]] || 'Private/Unknown',
+            bfw:  (comp.bfw_labels         || [])[row[10]] || 'Headwater/Ditch',
+            hmz:  (comp.hmz_labels         || [])[row[11]] || 'N',
+            tcat: tcatLabel === '' ? 'Not Impaired' : tcatLabel,
           };
         });
       }, [comp]);
 
-      // --- Deferred filtering (Apply button pattern) ---
-      const buildCompSnapshot = () => ({
-        selZone: new Set(selZone), selTier: new Set(selTier), selChk: new Set(selChk),
-        selFish: new Set(selFish), selZon: new Set(selZon), selOwn: new Set(selOwn),
-        selBfw: new Set(selBfw), selHmz: new Set(selHmz),
-        selSal: new Set(selSal), selSpecies: new Set(selSpecies),
-        selTcat: new Set(selTcat), selFcat: new Set(selFcat), selScat: new Set(selScat),
-        selBufZone: new Set(selBufZone),
-        rRPF: [...rRPF], rRPA: [...rRPA], rComp: [...rComp], rCH: [...rCH],
-        rSol: [...rSol], rSlp: [...rSlp], rWet: [...rWet],
-        rPF: [...rPF], rPS: [...rPS], rPH: [...rPH], rRest: [...rRest],
-      });
-      const [compApplied, setCompApplied] = React.useState(() => buildCompSnapshot());
-      const applyCompFilters = () => setCompApplied(buildCompSnapshot());
-
-      const compFiltersDirty = React.useMemo(() => {
-        const f = compApplied;
-        const setEq = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
-        const rngEq = (a, b) => a[0] === b[0] && a[1] === b[1];
-        return !(setEq(selZone, f.selZone) && setEq(selTier, f.selTier) && setEq(selChk, f.selChk) &&
-          setEq(selFish, f.selFish) && setEq(selZon, f.selZon) && setEq(selOwn, f.selOwn) &&
-          setEq(selBfw, f.selBfw) && setEq(selHmz, f.selHmz) &&
-          setEq(selSal, f.selSal) && setEq(selSpecies, f.selSpecies) &&
-          setEq(selTcat, f.selTcat) && setEq(selFcat, f.selFcat) && setEq(selScat, f.selScat) &&
-          setEq(selBufZone, f.selBufZone) &&
-          rngEq(rRPF, f.rRPF) && rngEq(rRPA, f.rRPA) && rngEq(rComp, f.rComp) && rngEq(rCH, f.rCH) &&
-          rngEq(rSol, f.rSol) && rngEq(rSlp, f.rSlp) && rngEq(rWet, f.rWet) &&
-          rngEq(rPF, f.rPF) && rngEq(rPS, f.rPS) && rngEq(rPH, f.rPH) && rngEq(rRest, f.rRest));
-      }, [compApplied, selZone, selTier, selChk, selFish, selZon, selOwn, selBfw, selHmz,
-          selSal, selSpecies, selTcat, selFcat, selScat, selBufZone,
-          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest]);
-
-      const filteredPoints = React.useMemo(() => {
-        const f = compApplied;
-        const inRange = (v, r) => v >= r[0] && v <= r[1];
-        // Species filter (matches BID Query): when all species selected, pass everything;
-        // when subset, only BIDs whose speciesList intersects the selection pass (no-species BIDs fail).
-        const allSpeciesSelected = f.selSpecies.size === (comp.species_labels?.length || 0);
-        const speciesPass = (lst) => {
-          if (allSpeciesSelected) return true;
-          if (f.selSpecies.size === 0) return false;
-          for (const s of lst) if (f.selSpecies.has(s)) return true;
-          return false;
-        };
-        // ECY cat filter (matches BID Query): when all visible cats selected, pass everything (incl. non-impaired).
-        // When subset, restrict to BIDs whose cat is in the selection — non-impaired (cat='') excluded.
-        const catPass = (val, sel, allLen) => {
-          if (sel.size === allLen) return true;
-          return sel.has(val);
-        };
-        const tcatLen = comp.tcat_labels?.length || 0;
-        const fcatLen = comp.fcat_labels?.length || 0;
-        const scatLen = comp.scat_labels?.length || 0;
-        return scatterPoints.filter(p =>
-          f.selZone.has(p.zone) && f.selTier.has(p.tier) && f.selChk.has(p.chk) &&
-          f.selFish.has(p.fish) && f.selZon.has(p.zon) && f.selOwn.has(p.own) &&
-          f.selBfw.has(p.bfw) && f.selHmz.has(p.hmz) &&
-          f.selSal.has(p.sal) && speciesPass(p.speciesList) &&
-          catPass(p.tcat, f.selTcat, tcatLen) && catPass(p.fcat, f.selFcat, fcatLen) && catPass(p.scat, f.selScat, scatLen) &&
-          p.bufZones.some((flag, i) => flag && f.selBufZone.has(i)) &&
-          inRange(p.rp_final, f.rRPF) && inRange(p.rp_area_pctile, f.rRPA) &&
-          inRange(p.mean_comp, f.rComp) && inRange(p.mean_ch, f.rCH) &&
-          inRange(p.solar_push, f.rSol) && inRange(p.slope_push, f.rSlp) && inRange(p.wetland_push, f.rWet) &&
-          inRange(p.pf, f.rPF) && inRange(p.ps, f.rPS) && inRange(p.ph, f.rPH) && inRange(p.rest, f.rRest)
-        );
-      }, [scatterPoints, compApplied]);
-
-      // --- Per-section active filter badge counts ---
-      // A categorical filter is "active" when it has fewer items selected than its full label set.
-      // A slider is "active" when its range differs from the default min/max.
-      // Buffer Zones is active when not all 5 indices are selected.
-      const compBadges = React.useMemo(() => {
-        const cat = (sel, labels) => sel.size !== (labels?.length || 0) ? 1 : 0;
-        const rng = (val, lo, hi) => (val[0] !== lo || val[1] !== hi) ? 1 : 0;
-        return {
-          metrics: cat(selTier, comp.tier_labels) +
-                   rng(rRPF, 0, 100) + rng(rRPA, 0, 100) + rng(rComp, -1, 1) +
-                   rng(rCH, 0, 300) + rng(rSol, 0, 12) + rng(rSlp, 0, 5) + rng(rWet, 0, 5) +
-                   rng(rPF, 0, 100) + rng(rPS, 0, 100) + rng(rPH, 0, 100) + rng(rRest, 0, 100),
-          fishSalmon: cat(selChk, comp.chk_labels) + cat(selFish, comp.fish_access_labels) +
-                      cat(selSal, comp.sal_labels) + cat(selSpecies, comp.species_labels),
-          impairment: cat(selTcat, comp.tcat_labels) + cat(selFcat, comp.fcat_labels) + cat(selScat, comp.scat_labels),
-          river: (selBufZone.size !== 5 ? 1 : 0) + cat(selHmz, comp.hmz_labels) +
-                 cat(selBfw, comp.bfw_labels) + cat(selZone, comp.sr_zone_labels),
-          admin: cat(selOwn, comp.own_labels) + cat(selZon, comp.zon_labels),
-        };
-      }, [comp, selTier, selChk, selFish, selSal, selSpecies, selTcat, selFcat, selScat,
-          selHmz, selBfw, selZone, selOwn, selZon, selBufZone,
-          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest]);
-
-      // --- Reset all Composition filters to defaults & apply immediately ---
-      const resetAllComp = () => {
-        const defaults = {
-          selZone: new Set(comp.sr_zone_labels || []),
-          selTier: new Set(comp.tier_labels || []),
-          selChk:  new Set(comp.chk_labels || []),
-          selFish: new Set(comp.fish_access_labels || []),
-          selZon:  new Set(comp.zon_labels || []),
-          selOwn:  new Set(comp.own_labels || []),
-          selBfw:  new Set(comp.bfw_labels || []),
-          selHmz:  new Set(comp.hmz_labels || []),
-          selSal:  new Set(comp.sal_labels || []),
-          selSpecies: new Set(comp.species_labels || []),
-          selTcat: new Set(comp.tcat_labels || []),
-          selFcat: new Set(comp.fcat_labels || []),
-          selScat: new Set(comp.scat_labels || []),
-          selBufZone: new Set([0, 1, 2, 3, 4]),
-          rRPF: [0, 100], rRPA: [0, 100], rComp: [-1, 1], rCH: [0, 300],
-          rSol: [0, 12], rSlp: [0, 5], rWet: [0, 5],
-          rPF: [0, 100], rPS: [0, 100], rPH: [0, 100], rRest: [0, 100],
-        };
-        setSelZone(defaults.selZone); setSelTier(defaults.selTier); setSelChk(defaults.selChk);
-        setSelFish(defaults.selFish); setSelZon(defaults.selZon); setSelOwn(defaults.selOwn);
-        setSelBfw(defaults.selBfw); setSelHmz(defaults.selHmz);
-        setSelSal(defaults.selSal); setSelSpecies(defaults.selSpecies);
-        setSelTcat(defaults.selTcat); setSelFcat(defaults.selFcat); setSelScat(defaults.selScat);
-        setSelBufZone(defaults.selBufZone);
-        setRRPF(defaults.rRPF); setRRPA(defaults.rRPA); setRComp(defaults.rComp); setRCH(defaults.rCH);
-        setRSol(defaults.rSol); setRSlp(defaults.rSlp); setRWet(defaults.rWet);
-        setRPF(defaults.rPF); setRPS(defaults.rPS); setRPH(defaults.rPH); setRRest(defaults.rRest);
-        setCompApplied(defaults);
-      };
-
-      // --- Composition class labels & colors ---
       const classLabels = comp.comp_class_labels || [];
       const classColors = comp.comp_class_colors || [];
+      const COMP_EDGES = [-1.01, -0.5, -0.1, 0.1, 0.5, 1.01];
 
-      // --- FilterGroup ---
-      // `highlighted` only controls the "(grouping)" badge — it never dims the filter.
-      function FilterGroup({ title, labels, colors, selected, setSelected, highlighted, badge }) {
+      // Single canonical ordering (mean composition asc, deciduous → conifer) shared by both
+      // charts so rows line up. Computed from D1 forest BIDs (the spectrum chart's data source);
+      // any landcover-only group with no D1 forest BIDs is appended at the end.
+      const groupOrder = React.useMemo(() => {
+        const acc = {};
+        scatterPoints.forEach(p => {
+          const k = p[gbOpt.id] || 'Unknown';
+          if (!acc[k]) acc[k] = { sum: 0, n: 0 };
+          acc[k].sum += p.mean_comp;
+          acc[k].n += 1;
+        });
+        return Object.entries(acc)
+          .map(([k, v]) => [k, v.sum / (v.n || 1)])
+          .sort((a, b) => a[1] - b[1])
+          .map(x => x[0]);
+      }, [scatterPoints, gbOpt]);
+      const groupOrderIdx = (name) => {
+        const i = groupOrder.indexOf(name);
+        return i === -1 ? groupOrder.length : i;
+      };
+
+      // ─── LandcoverView ───────────────────────────────────────────────────
+      // Stacked bar: 9 LC types per group, using the same palette as Bank Explorer.
+      // Data is preprocessor-aggregated (composition_out.landcover_by_group), so this
+      // renders all scored BIDs (not just D1 forest like the spectrum view below).
+      function LandcoverView() {
+        const lcOrder = comp.lc_order_full || [];
+        const groupData = (comp.landcover_by_group && comp.landcover_by_group[gbOpt.id]) || {};
+        const barData = Object.entries(groupData).map(([name, g]) => {
+          const row = { name, n: g.n };
+          lcOrder.forEach((lc, i) => { row[lc] = Math.round((g.lc[i] || 0) * 1000) / 10; });
+          return row;
+        }).sort((a, b) => groupOrderIdx(a.name) - groupOrderIdx(b.name));
+
         return (
-          <div style={{ marginBottom: 4 }}>
-            <div className="flex items-center gap-1 mb-1">
-              <span className="text-xs font-semibold text-gray-600" style={{ minWidth: 60 }}>
-                {title}
-                {highlighted && <span style={{ fontSize: 9, marginLeft: 4, color: '#1193BA' }}>({badge || 'active'})</span>}
-              </span>
-              <button onClick={() => toggleAll(labels, selected, setSelected)}
-                className="text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 hover:bg-gray-300"
-                style={{ fontSize: 10, lineHeight: '14px' }}>
-                {selected.size === labels.length ? 'None' : 'All'}
-              </button>
+          <div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {lcOrder.map((lc, i) => (
+                <div key={lc} className="flex items-center gap-1">
+                  <div style={{ width: 12, height: 12, borderRadius: 2, background: LAB_LC_FILLS[i] }}></div>
+                  <span className="text-xs text-gray-600">{lc}</span>
+                </div>
+              ))}
             </div>
-            <div className="flex flex-wrap gap-1">
-              {labels.map(lbl => {
-                const on = selected.has(lbl);
-                const c = colors[lbl] || '#9ca3af';
-                return (
-                  <button key={lbl} onClick={() => toggleItem(selected, setSelected, lbl)}
-                    className="text-xs px-1.5 py-0.5 rounded border"
-                    style={{
-                      background: on ? c : 'transparent',
-                      color: on ? '#fff' : c,
-                      borderColor: c,
-                      fontWeight: on ? 600 : 400,
-                      opacity: on ? 1 : 0.6,
-                      fontSize: 10,
-                    }}>
-                    {lbl}
-                  </button>
-                );
-              })}
-            </div>
+            <ResponsiveContainer width="100%" height={Math.max(280, barData.length * 44)}>
+              <BarChart data={barData} layout="vertical" margin={{ left: 120, right: 30, top: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} allowDecimals={false}
+                  tickFormatter={v => Math.round(v)}
+                  label={{ value: '% of total scored area', position: 'insideBottom', offset: -2, fontSize: 10 }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={115} />
+                <Tooltip content={({ active, payload, label }) => {
+                  if (!active || !payload || !payload.length) return null;
+                  const d = payload[0]?.payload;
+                  return (
+                    <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 6,
+                      padding: '6px 10px', fontSize: 11, color: '#e5e7eb' }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>{label} (n={d?.n})</div>
+                      {lcOrder.map((lc, i) => d?.[lc] > 0.05 ? (
+                        <div key={lc} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 1, background: LAB_LC_FILLS[i] }}></div>
+                          <span>{lc}: {d[lc].toFixed(1)}%</span>
+                        </div>
+                      ) : null)}
+                    </div>
+                  );
+                }} />
+                {lcOrder.map((lc, i) => (
+                  <Bar key={lc} dataKey={lc} stackId="s" fill={LAB_LC_FILLS[i]}
+                    fillOpacity={0.9} isAnimationActive={false} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         );
       }
 
-      // ---- View 1: Spectrum Strip (diverging stacked bar) ----
-      // Composition class bin edges (matches preprocessor COMP_BINS)
-      const COMP_EDGES = [-1.01, -0.5, -0.1, 0.1, 0.5, 1.01];
-
+      // ─── SpectrumView ────────────────────────────────────────────────────
+      // 5-class composition spectrum (D1 forest BIDs only), buffer zone breakdown,
+      // and Canopy Height × Composition scatter. Aggregates client-side from scatterPoints.
       function SpectrumView() {
-        const gbOpt = GROUP_BY_OPTIONS.find(o => o.id === groupBy) || GROUP_BY_OPTIONS[0];
-
-        // Build data array from filteredPoints so filters actually work
         const barData = React.useMemo(() => {
           const groups = {};
-          filteredPoints.forEach(p => {
+          scatterPoints.forEach(p => {
             const key = p[gbOpt.id] || 'Unknown';
             if (!groups[key]) groups[key] = { pts: [], heights: [] };
             groups[key].pts.push(p.mean_comp);
@@ -2835,24 +2717,13 @@
               row[cl] = pct;
               sum += pct;
             });
-            // Absorb rounding error into last class so stacked total = 100
             if (n && sum !== 100) row[classLabels[classLabels.length - 1]] += Math.round((100 - sum) * 10) / 10;
             return row;
-          }).sort((a, b) => a.mean - b.mean);
-        }, [filteredPoints, gbOpt, classLabels]);
+          }).sort((a, b) => groupOrderIdx(a.name) - groupOrderIdx(b.name));
+        }, [scatterPoints, gbOpt, classLabels, groupOrder]);
 
         return (
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-xs font-semibold text-gray-500">Group by:</span>
-              <select value={groupBy} onChange={e => setGroupBy(e.target.value)}
-                className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400">
-                {GROUP_BY_OPTIONS.map(opt => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
             <div className="flex gap-2 mb-3 flex-wrap">
               {classLabels.map((cl, i) => (
                 <div key={cl} className="flex items-center gap-1">
@@ -2861,38 +2732,34 @@
                 </div>
               ))}
             </div>
-
             <ResponsiveContainer width="100%" height={Math.max(280, barData.length * 44)}>
               <BarChart data={barData} layout="vertical" margin={{ left: 120, right: 30, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
                 <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} allowDecimals={false}
                   tickFormatter={v => Math.round(v)}
-                  label={{ value: '% of BIDs', position: 'insideBottom', offset: -2, fontSize: 10 }} />
+                  label={{ value: '% of D1 forest BIDs', position: 'insideBottom', offset: -2, fontSize: 10 }} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={115} />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const d = payload[0]?.payload;
-                    return (
-                      <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 6,
-                        padding: '6px 10px', fontSize: 11, color: '#e5e7eb' }}>
-                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{label} (n={d?.n})</div>
-                        <div style={{ marginBottom: 2 }}>Mean comp: {d?.mean?.toFixed(3)}</div>
-                        <div style={{ marginBottom: 2 }}>Mean canopy ht: {d?.mean_ch?.toFixed(1)} ft</div>
-                        {classLabels.map((cl, i) => (
-                          <div key={cl} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <div style={{ width: 8, height: 8, borderRadius: 1, background: classColors[i] }}></div>
-                            <span>{cl}: {d?.[cl]?.toFixed(1)}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }}
-                />
+                <Tooltip content={({ active, payload, label }) => {
+                  if (!active || !payload || !payload.length) return null;
+                  const d = payload[0]?.payload;
+                  return (
+                    <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 6,
+                      padding: '6px 10px', fontSize: 11, color: '#e5e7eb' }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>{label} (n={d?.n})</div>
+                      <div style={{ marginBottom: 2 }}>Mean comp: {d?.mean?.toFixed(3)}</div>
+                      <div style={{ marginBottom: 2 }}>Mean canopy ht: {d?.mean_ch?.toFixed(1)} ft</div>
+                      {classLabels.map((cl, i) => (
+                        <div key={cl} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 1, background: classColors[i] }}></div>
+                          <span>{cl}: {d?.[cl]?.toFixed(1)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }} />
                 {classLabels.map((cl, i) => (
                   <Bar key={cl} dataKey={cl} stackId="s" fill={classColors[i]}
                     fillOpacity={0.9} isAnimationActive={false}>
-                    {/* Show height label on the last (rightmost) stacked segment */}
                     {i === classLabels.length - 1 && (
                       <LabelList dataKey="mean_ch" position="right"
                         formatter={v => v > 0 ? `${Math.round(v)} ft` : ''}
@@ -2916,14 +2783,12 @@
                       <React.Fragment key={zLabel}>
                         <span className="text-xs font-medium text-gray-600 text-right" style={{ minWidth: 70 }}>{zLabel}</span>
                         <div style={{ position: 'relative' }}>
-                          {/* Stacked composition bar */}
                           <div style={{ display: 'flex', height: 16, borderRadius: 4, overflow: 'hidden' }}>
                             {classLabels.map((cl, i) => (
                               <div key={cl} style={{ width: `${zData.classes[i]}%`, background: classColors[i], transition: 'width 0.3s' }}
                                 title={`${cl}: ${zData.classes[i].toFixed(1)}%`}></div>
                             ))}
                           </div>
-                          {/* Mean indicator line */}
                           <div style={{
                             position: 'absolute', top: -2, left: `${gPct}%`, transform: 'translateX(-50%)',
                             width: 2, height: 20, background: '#1f2937', borderRadius: 1,
@@ -2937,30 +2802,22 @@
                   })}
                 </div>
                 <p className="text-xs text-gray-400 mt-2">
-                  Bars show class distribution per buffer zone (all BIDs, unaffected by filters above). Black marker = mean composition. Closer to stream (0–50 ft) vs. upland (HMZ+300).
+                  Bars show class distribution per buffer zone (D1 forest BIDs). Black marker = mean composition. Closer to stream (0–50 ft) vs. upland (HMZ+300).
                 </p>
               </div>
             )}
 
             {/* Height × Composition Scatter */}
             {(() => {
-              const COMP_BFW_COLORS = { 'Headwater/Ditch': '#66CAD8', 'Small Stream': '#1193BA', 'Medium Stream': '#0B7A9E', 'Large Stream': '#004562', 'Mainstem': '#002D42' };
-              const COMP_HMZ_COLORS = { 'Y': '#f59e0b', 'N': '#6b7280' };
-              const COLOR_MAPS = { zone: SR_ZONE_COLORS, tier: TIER_COLORS, chk: CHINOOK_COLORS,
-                fish: FISH_COLORS, zon: ZONING_COLORS, own: MANAGER_CAT_COLORS,
-                bfw: COMP_BFW_COLORS, hmz: COMP_HMZ_COLORS };
               const colorMap = COLOR_MAPS[groupBy] || SR_ZONE_COLORS;
-              // Group filteredPoints by current groupBy for colored series
               const seriesMap = {};
-              filteredPoints.forEach(p => {
+              scatterPoints.forEach(p => {
                 const key = p[gbOpt.id] || 'Unknown';
                 if (!seriesMap[key]) seriesMap[key] = [];
                 seriesMap[key].push({ x: p.mean_comp, y: p.mean_ch, zone: p.zone, tier: p.tier });
               });
               const seriesKeys = Object.keys(seriesMap).sort();
-
-              // --- Compute trend line (OLS) and centroid from filtered data ---
-              const pts = filteredPoints.filter(p => p.mean_comp != null && p.mean_ch != null);
+              const pts = scatterPoints.filter(p => p.mean_comp != null && p.mean_ch != null);
               const n = pts.length;
               let trendData = [];
               let centroid = null;
@@ -2976,7 +2833,6 @@
                   trendData = [{ x: -1, y: slope * -1 + intercept }, { x: 1, y: slope * 1 + intercept }];
                 }
               }
-
               return (
                 <div className="mt-5 pt-4 border-t border-gray-200">
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
@@ -2987,7 +2843,7 @@
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis type="number" dataKey="x" domain={[-1, 1]} tick={{ fontSize: 10 }}
                         tickFormatter={v => v.toFixed(1)}
-                        label={{ value: 'Mean Composition (deciduous \u2190 \u2192 conifer)', position: 'insideBottom', offset: -18, fontSize: 10 }} />
+                        label={{ value: 'Mean Composition (deciduous ← → conifer)', position: 'insideBottom', offset: -18, fontSize: 10 }} />
                       <YAxis type="number" dataKey="y" tick={{ fontSize: 10 }}
                         label={{ value: 'Mean Canopy Height (ft)', angle: -90, position: 'insideLeft', offset: -35, fontSize: 10 }} />
                       <Tooltip content={({ active, payload }) => {
@@ -2996,7 +2852,7 @@
                         if (d?._isCentroid) return (
                           <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 6,
                             padding: '4px 8px', fontSize: 11, color: '#e5e7eb' }}>
-                            <div style={{ fontWeight: 600 }}>Filter Mean ({n.toLocaleString()} BIDs)</div>
+                            <div style={{ fontWeight: 600 }}>Mean ({n.toLocaleString()} BIDs)</div>
                             <div>Comp: {d.x?.toFixed(3)}</div>
                             <div>Height: {d.y?.toFixed(1)} ft</div>
                           </div>
@@ -3013,15 +2869,13 @@
                       {seriesKeys.map(key => (
                         <Scatter key={key} name={key} data={seriesMap[key]}
                           fill={colorMap[key] || '#6b7280'} fillOpacity={0.5}
-                          isAnimationActive={false} r={2.5} />
+                          isAnimationActive={false} r={1.8} />
                       ))}
-                      {/* OLS trend line */}
                       {trendData.length === 2 && (
                         <Scatter name="Trend" data={trendData} fill="none" isAnimationActive={false}
                           line={{ stroke: '#ef4444', strokeWidth: 2, strokeDasharray: '6 3' }}
                           lineType="joint" r={0} legendType="none" />
                       )}
-                      {/* Filter centroid */}
                       {centroid && (
                         <Scatter name="Mean" data={[{ ...centroid, _isCentroid: true }]}
                           fill="#ef4444" stroke="#fff" strokeWidth={2}
@@ -3038,8 +2892,32 @@
                       )}
                     </ScatterChart>
                   </ResponsiveContainer>
+                  {/* Color legend — keys ordered the same way as the bars above */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2"
+                    style={{ fontSize: 11 }}
+                    title={`Colors driven by Group by: ${gbOpt.label}`}>
+                    <span className="text-gray-500" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {gbOpt.label}:
+                    </span>
+                    {[...seriesKeys].sort((a, b) => groupOrderIdx(a) - groupOrderIdx(b)).map(key => (
+                      <span key={key} className="flex items-center gap-1 text-gray-600">
+                        <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+                          background: colorMap[key] || '#6b7280' }}></span>
+                        <span>{key}</span>
+                      </span>
+                    ))}
+                    <span className="flex items-center gap-1 ml-2 text-gray-500" style={{ fontSize: 10 }}>
+                      <span style={{ display: 'inline-block', width: 18, height: 2, background: '#ef4444' }}></span>
+                      OLS trend
+                    </span>
+                    <span className="flex items-center gap-1 text-gray-500" style={{ fontSize: 10 }}>
+                      <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+                        background: '#ef4444', border: '2px solid #fff', boxShadow: '0 0 0 1px #ef4444' }}></span>
+                      dataset mean
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-400 mt-1">
-                    Each dot = one BID. Colored by {gbOpt.label}. <span style={{ color: '#ef4444' }}>—</span> OLS trend &amp; <span style={{ color: '#ef4444' }}>●</span> filter mean. Responds to filters.
+                    Each dot = one D1 forest BID. Colored by {gbOpt.label}.
                   </p>
                 </div>
               );
@@ -3048,163 +2926,39 @@
         );
       }
 
-      // ---- Main render ----
+      // ─── Main render ─────────────────────────────────────────────────────
       return (
         <div className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3">
             <span className="text-xl">🌲</span>
             <div>
-              <h3 className="font-semibold text-blue-900">D1 Forest Composition</h3>
+              <h3 className="font-semibold text-blue-900">Landcover &amp; D1 Forest Composition</h3>
               <p className="text-sm text-blue-700">
-                Conifer-to-deciduous spectrum for D1 Forest polygons. Values range from -1 (pure deciduous) to +1 (pure conifer).
-                Overall mean: <strong>{comp.overall?.mean?.toFixed(3)}</strong> across {comp.overall?.n?.toLocaleString()} BIDs with forest.
+                <strong>Top chart:</strong> mean landcover composition across the 9 cover types per group, computed over all scored BIDs (Forest grouped as one color).
+                <strong> Bottom chart:</strong> conifer-to-deciduous spectrum for D1 forest BIDs only — values range from −1 (pure deciduous) to +1 (pure conifer); overall mean <strong>{comp.overall?.mean?.toFixed(3)}</strong> across {comp.overall?.n?.toLocaleString()} BIDs with forest.
               </p>
             </div>
           </div>
 
-          {/* Filters panel \u2014 grouped collapsible sections (mirrors BID Query layout) */}
-          <div className="bg-white rounded-lg shadow p-3">
-
-            {/* Section 1: Restoration Metrics (default open) */}
-            <CollapsibleSection title="Restoration Metrics" defaultOpen={true} badge={compBadges.metrics}>
-              <div style={{ marginBottom: 8 }}>
-                {comp.tier_labels && <FilterGroup title="Priority" labels={comp.tier_labels}
-                  colors={TIER_COLORS} selected={selTier} setSelected={setSelTier}
-                  highlighted={groupBy === 'tier'}
-                  badge={groupBy === 'tier' ? 'grouping' : undefined} />}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
-                <DualRangeSlider label="RP Final" min={0} max={100} step={1} value={rRPF} onChange={setRRPF} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="Area RP %ile" min={0} max={100} step={1} value={rRPA} onChange={setRRPA} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="Composition" min={-1} max={1} step={0.05} value={rComp} onChange={setRComp} fmt={v => v.toFixed(2)} />
-                <DualRangeSlider label="Canopy Ht (ft)" min={0} max={300} step={5} value={rCH} onChange={setRCH} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="Solar Push" min={0} max={12} step={0.5} value={rSol} onChange={setRSol} fmt={v => v.toFixed(1)} />
-                <DualRangeSlider label="Slope Push" min={0} max={5} step={0.25} value={rSlp} onChange={setRSlp} fmt={v => v.toFixed(1)} />
-                <DualRangeSlider label="Wetland Push" min={0} max={5} step={0.25} value={rWet} onChange={setRWet} fmt={v => v.toFixed(1)} />
-                <DualRangeSlider label="% Forest" min={0} max={100} step={1} value={rPF} onChange={setRPF} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="% Shrub" min={0} max={100} step={1} value={rPS} onChange={setRPS} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="% Herb/Ground" min={0} max={100} step={1} value={rPH} onChange={setRPH} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="% Restorable" min={0} max={100} step={1} value={rRest} onChange={setRRest} fmt={v => v.toFixed(0)} />
-              </div>
-            </CollapsibleSection>
-
-            {/* Section 2: Fish / Salmon (default closed) */}
-            <CollapsibleSection title="Fish / Salmon" defaultOpen={false} badge={compBadges.fishSalmon}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
-                {comp.chk_labels && <FilterGroup title="Early Chinook" labels={comp.chk_labels}
-                  colors={CHINOOK_COLORS} selected={selChk} setSelected={setSelChk}
-                  highlighted={groupBy === 'chk'}
-                  badge={groupBy === 'chk' ? 'grouping' : undefined} />}
-                {comp.fish_access_labels && <FilterGroup title="Fish Access" labels={comp.fish_access_labels}
-                  colors={FISH_COLORS} selected={selFish} setSelected={setSelFish}
-                  highlighted={groupBy === 'fish'}
-                  badge={groupBy === 'fish' ? 'grouping' : undefined} />}
-                {comp.sal_labels && <FilterGroup title="Salmon Present" labels={comp.sal_labels}
-                  colors={{ 'Y': '#dc2626', 'N': '#6b7280' }}
-                  selected={selSal} setSelected={setSelSal} />}
-                <div className="md:col-span-2">
-                  {comp.species_labels && <FilterGroup title="Salmon Species" labels={comp.species_labels} colors={{
-                    'Spring Chinook': '#dc2626', 'Fall Chinook': '#ef4444', 'Coho': '#f97316',
-                    'Summer Steelhead': '#eab308', 'Winter Steelhead': '#84cc16',
-                    'Fall Chum': '#10b981', 'Pink (Odd Year)': '#06b6d4',
-                    'Sockeye': '#0ea5e9', 'Dolly Varden / Bull Trout': '#8b5cf6'
-                  }} selected={selSpecies} setSelected={setSelSpecies} />}
-                </div>
-              </div>
-            </CollapsibleSection>
-
-            {/* Section 3: Impairment (default closed) */}
-            <CollapsibleSection title="Impairment" defaultOpen={false} badge={compBadges.impairment}>
-              <div className="grid grid-cols-1 gap-y-2">
-                {comp.tcat_labels && <FilterGroup title="ECY Temperature Impaired Category" labels={comp.tcat_labels}
-                  colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }}
-                  selected={selTcat} setSelected={setSelTcat} />}
-                {comp.fcat_labels && <FilterGroup title="ECY Fecal Impaired Category" labels={comp.fcat_labels}
-                  colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }}
-                  selected={selFcat} setSelected={setSelFcat} />}
-                {comp.scat_labels && <FilterGroup title="ECY Sediment Impaired Category" labels={comp.scat_labels}
-                  colors={{ '1': '#10b981', '2': '#fbbf24', '3': '#9ca3af', '4A': '#f97316', '4B': '#f97316', '4C': '#f97316', '5': '#dc2626' }}
-                  selected={selScat} setSelected={setSelScat} />}
-              </div>
-            </CollapsibleSection>
-
-            {/* Section 4: River Context (default closed) */}
-            <CollapsibleSection title="River Context" defaultOpen={false} badge={compBadges.river}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                {/* Buffer Zones */}
-                <div>
-                  <div className="flex items-center gap-1 mb-1">
-                    <span style={{ fontSize: 10, fontWeight: 600, color: '#374151', minWidth: 60 }}>Buffer Zones</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {bufZoneLabels.map((lbl, i) => {
-                      const checked = selBufZone.has(i);
-                      const disabled = i === 0;
-                      return (
-                        <button key={i} onClick={() => !disabled && toggleBufZone(i)}
-                          style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, border: '1px solid',
-                            borderColor: checked ? '#1193BA' : '#d1d5db',
-                            background: checked ? '#1193BA' : '#f3f4f6',
-                            color: checked ? '#fff' : '#6b7280',
-                            opacity: disabled ? 0.7 : 1,
-                            cursor: disabled ? 'default' : 'pointer' }}>
-                          {lbl}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                {comp.hmz_labels && <FilterGroup title="Historic Migration Zone (HMZ)" labels={comp.hmz_labels}
-                  colors={{ 'Y': '#f59e0b', 'N': '#6b7280' }}
-                  selected={selHmz} setSelected={setSelHmz}
-                  highlighted={groupBy === 'hmz'}
-                  badge={groupBy === 'hmz' ? 'grouping' : undefined} />}
-                {comp.bfw_labels && <FilterGroup title="Bankfull Width (BfW)" labels={comp.bfw_labels}
-                  colors={{ 'Headwater/Ditch': '#66CAD8', 'Small Stream': '#1193BA', 'Medium Stream': '#0B7A9E', 'Large Stream': '#004562', 'Mainstem': '#002D42' }}
-                  selected={selBfw} setSelected={setSelBfw}
-                  highlighted={groupBy === 'bfw'}
-                  badge={groupBy === 'bfw' ? 'grouping' : undefined} />}
-                {comp.sr_zone_labels && <FilterGroup title="Stream Region Zone (SR Zone)" labels={comp.sr_zone_labels}
-                  colors={SR_ZONE_COLORS} selected={selZone} setSelected={setSelZone}
-                  highlighted={groupBy === 'zone'}
-                  badge={groupBy === 'zone' ? 'grouping' : undefined} />}
-              </div>
-            </CollapsibleSection>
-
-            {/* Section 5: Administrative (default closed) */}
-            <CollapsibleSection title="Administrative" defaultOpen={false} badge={compBadges.admin}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                {comp.own_labels && <FilterGroup title="Owner" labels={comp.own_labels}
-                  colors={MANAGER_CAT_COLORS} selected={selOwn} setSelected={setSelOwn}
-                  highlighted={groupBy === 'own'}
-                  badge={groupBy === 'own' ? 'grouping' : undefined} />}
-                {comp.zon_labels && <FilterGroup title="Zoning" labels={comp.zon_labels}
-                  colors={ZONING_COLORS} selected={selZon} setSelected={setSelZon}
-                  highlighted={groupBy === 'zon'}
-                  badge={groupBy === 'zon' ? 'grouping' : undefined} />}
-              </div>
-            </CollapsibleSection>
-
-            {/* Action bar \u2014 stays outside collapsible sections */}
-            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200">
-              <button onClick={applyCompFilters}
-                className="text-xs px-4 py-1.5 rounded text-white font-semibold"
-                style={{ background: compFiltersDirty ? '#F9A134' : '#1193BA', boxShadow: compFiltersDirty ? '0 0 0 2px rgba(249,161,52,0.4)' : 'none', transition: 'all 0.2s' }}>
-                {compFiltersDirty ? '\u26A1 Apply Filters' : '\u2713 Filters Applied'}
-              </button>
-              <button onClick={resetAllComp}
-                className="text-xs px-3 py-1 rounded bg-gray-200 text-gray-600 hover:bg-gray-300">
-                Reset All
-              </button>
-              <span className="text-sm text-gray-600">
-                <span className="font-bold" style={{ color: '#1193BA' }}>{filteredPoints.length.toLocaleString()}</span> of {scatterPoints.length.toLocaleString()} BIDs
-                {compFiltersDirty && <span className="text-xs text-amber-500 ml-2">(filters changed \u2014 click Apply)</span>}
-              </span>
-            </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-gray-500">Group by:</span>
+            <select value={groupBy} onChange={e => setGroupBy(e.target.value)}
+              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400">
+              {GROUP_BY_OPTIONS.map(opt => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Spectrum Strip view */}
+          {/* New: Landcover stacked bar (all 9 LC types, all scored BIDs) */}
           <div className="bg-white border rounded-lg p-4">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Landcover composition by {gbOpt.label}</h4>
+            <LandcoverView />
+          </div>
+
+          {/* Existing: 5-class composition spectrum + buffer zones + scatter (D1 forest only) */}
+          <div className="bg-white border rounded-lg p-4">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">D1 Forest composition spectrum by {gbOpt.label}</h4>
             <SpectrumView />
           </div>
         </div>
@@ -4189,8 +3943,8 @@
           </div>
 
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-6 text-sm text-red-800 dark:text-red-300">
-            <strong>Tier definitions:</strong> P1 = Nooksack Chinook habitat + 303(d) temperature impairment.
-            P2 = Chinook habitat (no temp) or other fish-bearing + temp.
+            <strong>Tier definitions:</strong> P1 = Nooksack Early Chinook habitat + 303(d) temperature impairment.
+            P2 = Early Chinook habitat (no temp) or other fish-bearing + temp.
             P3 = Fish-bearing mixed (Nooksack no temp, or other WRIA 1 + temp).
             P4 = Fish-bearing other (no temp). P5 = Gradient-accessible.
           </div>
@@ -4428,6 +4182,48 @@
       } catch (e) { console.error('sqlBidCount error:', e); return 0; }
     }
 
+    // All BIDs on the same RID (reach), sorted by RP Final descending. Includes the current BID.
+    // CI is computed inline (rpsf * rpsa / 100) since it isn't a stored column in the SQLite.
+    function sqlReachSiblings(db, rid) {
+      try {
+        if (!db || !rid) return [];
+        const esc = v => "'" + String(v).replace(/'/g, "''") + "'";
+        const r = db.exec(
+          `SELECT bid, rpf, sol, asp, af, ROUND(rpsf * rpsa / 100.0, 1) AS ci FROM bids
+           WHERE rid = ${esc(rid)}
+           ORDER BY rpf DESC`
+        );
+        if (!r.length) return [];
+        return r[0].values.map(([bid, rpf, sol, asp, af, ci]) => ({ bid, rpf, sol, asp, af, ci }));
+      } catch (e) { console.error('sqlReachSiblings error:', e); return []; }
+    }
+
+    // In-channel (waterbody) BIDs on the same RID — these were filtered out of scoring but
+    // we surface them in the Reach Context card with their landcover composition for context.
+    function sqlReachWaterbodyBids(db, rid) {
+      try {
+        if (!db || !rid) return [];
+        const esc = v => "'" + String(v).replace(/'/g, "''") + "'";
+        const r = db.exec(
+          `SELECT bid, lc, sqft, wt FROM waterbody_bids WHERE rid = ${esc(rid)} ORDER BY bid`
+        );
+        if (!r.length) return [];
+        return r[0].values.map(([bid, lc, sqft, wt]) => {
+          let lcArr = [0,0,0,0,0,0,0,0,0];
+          try { lcArr = JSON.parse(lc); } catch (_) {}
+          return { bid, lc: lcArr, sqft, wt };
+        });
+      } catch (e) { console.error('sqlReachWaterbodyBids error:', e); return []; }
+    }
+
+    // 16-point compass abbreviation for an aspect angle in degrees (0/360 = N).
+    const aspectCompass = (deg) => {
+      if (deg == null || isNaN(deg)) return '';
+      const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE',
+                    'S','SSW','SW','WSW','W','WNW','NW','NNW'];
+      return dirs[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+    };
+
     function BankExplorerPanel({ data, sharedBidData, pendingBID, setPendingBID, onBIDSelect }) {
       const db = sharedBidData?.db || null;
       const bidLoading = !db;
@@ -4467,6 +4263,16 @@
       const attr = React.useMemo(() => sqlQueryBidAttr(db, selectedBID), [db, selectedBID]);
       const zoneArrays = React.useMemo(() => sqlQueryBidZones(db, selectedBID), [db, selectedBID]);
       const totalBidCount = React.useMemo(() => sqlBidCount(db), [db]);
+      // All BIDs on the same RID (sorted by RP Final desc), used by the Reach Context card.
+      const siblings = React.useMemo(() => {
+        if (!db || !attr || !attr.rid) return [];
+        return sqlReachSiblings(db, attr.rid);
+      }, [db, attr]);
+      // In-channel (waterbody) BIDs on the same RID — filtered out of scoring, surfaced for context.
+      const waterbodyBids = React.useMemo(() => {
+        if (!db || !attr || !attr.rid) return [];
+        return sqlReachWaterbodyBids(db, attr.rid);
+      }, [db, attr]);
       const filtered = React.useMemo(() => {
         if (searchTerm.length === 0 || !db) return [];
         return sqlSearchBids(db, searchTerm);
@@ -4675,11 +4481,7 @@
                               </div>
                             )}
                           </div>
-                        ) : (
-                          <div className="text-gray-400 text-xs italic" style={{ paddingTop: 8 }}>
-                            Hover a cell to see<br/>cover type & RP
-                          </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     {/* LC Legend - matches Score Lab */}
@@ -4718,9 +4520,9 @@
                       </tr>
                       {attr.asp != null && (
                         <tr className="border-b dark:border-gray-700">
-                          <td className="py-1 pl-3 text-xs text-gray-400 italic">aspect {attr.asp}° → factor {(attr.af >= 0 ? '+' : '') + (attr.af ?? 0).toFixed(2)}</td>
+                          <td className="py-1 pl-3 text-xs text-gray-400 italic">aspect {attr.asp}° ({aspectCompass(attr.asp)}) → factor {(attr.af >= 0 ? '+' : '') + (attr.af ?? 0).toFixed(2)}</td>
                           <td className="py-1 text-right font-mono text-xs text-gray-400 italic">
-                            {attr.af > 0.05 ? '(boosted)' : attr.af < -0.05 ? '(penalty)' : '(neutral)'}
+                            {attr.af > 0.05 ? '(boost)' : attr.af < -0.05 ? '(reduction)' : '(neutral)'}
                           </td>
                         </tr>
                       )}
@@ -4756,15 +4558,15 @@
                       const isFish = attr.fish === 'fish';
                       const isTemp = attr.ti;
                       const checks = [
-                        { label: 'Chinook', met: isChin },
+                        { label: 'Early Chinook', met: isChin },
                         { label: 'Nooksack', met: isNook },
                         { label: 'Fish-bearing', met: isFish },
                         { label: 'Temp Impaired', met: isTemp },
                       ];
                       const tierDesc = {
-                        P1: 'Chinook + Nooksack + Temp Impaired',
-                        P2: isChin && isNook ? 'Chinook + Nooksack (no temp)' : 'Fish-bearing + Temp Impaired (no chinook)',
-                        P3: isFish && isNook ? 'Fish + Nooksack (no chinook, no temp)' : 'Fish-bearing + non-Nooksack + Temp',
+                        P1: 'Early Chinook + Nooksack + Temp Impaired',
+                        P2: isChin && isNook ? 'Early Chinook + Nooksack (no temp)' : 'Fish-bearing + Temp Impaired (no Early Chinook)',
+                        P3: isFish && isNook ? 'Fish + Nooksack (no Early Chinook, no temp)' : 'Fish-bearing + non-Nooksack + Temp',
                         P4: 'Fish-bearing + non-Nooksack (no temp)',
                         P5: 'Gradient-accessible only',
                       };
@@ -4837,7 +4639,7 @@
                       <span className={`w-2.5 h-2.5 rounded-full ${attr.ti ? 'bg-red-500' : 'bg-green-500'}`}></span>
                       <span className="text-gray-500 text-xs">Temperature</span>
                       <span className={`text-xs font-semibold ${attr.ti ? 'text-red-600' : 'text-green-600'}`}>{attr.ti ? 'Impaired' : 'OK'}</span>
-                      {attr.ti && attr.tic && (
+                      {attr.ti > 0 && attr.tic && (
                         <span className="text-xs px-1.5 py-0.5 rounded font-mono bg-red-100 text-red-700">Cat {attr.tic}</span>
                       )}
                     </div>
@@ -4845,7 +4647,7 @@
                       <span className={`w-2.5 h-2.5 rounded-full ${attr.fi ? 'bg-red-500' : 'bg-green-500'}`}></span>
                       <span className="text-gray-500 text-xs">Fecal</span>
                       <span className={`text-xs font-semibold ${attr.fi ? 'text-red-600' : 'text-green-600'}`}>{attr.fi ? 'Impaired' : 'OK'}</span>
-                      {attr.fi && attr.fic && (
+                      {attr.fi > 0 && attr.fic && (
                         <span className="text-xs px-1.5 py-0.5 rounded font-mono bg-red-100 text-red-700">Cat {attr.fic}</span>
                       )}
                     </div>
@@ -4853,7 +4655,7 @@
                       <span className={`w-2.5 h-2.5 rounded-full ${attr.si ? 'bg-red-500' : 'bg-green-500'}`}></span>
                       <span className="text-gray-500 text-xs">Sediment</span>
                       <span className={`text-xs font-semibold ${attr.si ? 'text-red-600' : 'text-green-600'}`}>{attr.si ? 'Impaired' : 'OK'}</span>
-                      {attr.si && attr.sic && (
+                      {attr.si > 0 && attr.sic && (
                         <span className="text-xs px-1.5 py-0.5 rounded font-mono bg-red-100 text-red-700">Cat {attr.sic}</span>
                       )}
                     </div>
@@ -4897,6 +4699,17 @@
                             p{pctile}
                           </span>
                         </div>
+                        {attr.asp != null && (() => {
+                          const af = attr.af ?? 0;
+                          const tag = af > 0.05 ? 'boost' : af < -0.05 ? 'reduction' : 'neutral';
+                          const tagColor = af > 0.05 ? 'text-green-600 dark:text-green-400' : af < -0.05 ? 'text-red-600 dark:text-red-400' : 'text-gray-500';
+                          return (
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-2 italic">
+                              Aspect {attr.asp}° ({aspectCompass(attr.asp)}) → factor {(af >= 0 ? '+' : '') + af.toFixed(2)}
+                              <span className={`ml-1 font-semibold ${tagColor}`}>({tag})</span>
+                            </div>
+                          );
+                        })()}
                         {/* Distribution bar */}
                         <div className="relative h-2.5 bg-gradient-to-r from-green-200 via-yellow-200 to-red-300 dark:from-green-900 dark:via-yellow-900 dark:to-red-900 rounded-full mb-1.5">
                           <div className="absolute top-0 h-2.5 w-0.5 bg-gray-800 dark:bg-white rounded" style={{ left: `${Math.min(pctile, 100)}%` }}></div>
@@ -5000,8 +4813,157 @@
                       })}
                     </tbody>
                   </table>
-                  )}
                 </div>
+              </div>
+
+              {/* Reach Context Card — full-width, siblings on the same RID */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mt-4">
+                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3">Reach Context</h4>
+                {!attr.rid ? (
+                  <div className="text-xs text-gray-400 italic">No reach (RID) data on this BID — preprocessor + bundle may need refreshing.</div>
+                ) : siblings.length === 0 ? (
+                  <div className="text-xs text-gray-400 italic">Loading reach siblings…</div>
+                ) : siblings.length === 1 ? (
+                  <div className="text-xs text-gray-500 italic">
+                    Only bank on this reach (RID: <span className="font-mono">{attr.rid}</span>).
+                  </div>
+                ) : (() => {
+                  const myRpRank = siblings.findIndex(s => s.bid === selectedBID) + 1;
+                  const ciSorted = [...siblings].sort((a, b) => (b.ci || 0) - (a.ci || 0));
+                  const myCiRank = ciSorted.findIndex(s => s.bid === selectedBID) + 1;
+                  const n = siblings.length;
+                  const rpVals = siblings.map(s => s.rpf || 0);
+                  const solVals = siblings.map(s => s.sol || 0);
+                  const ciVals = siblings.map(s => s.ci || 0);
+                  const mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
+                  const rpMean = mean(rpVals).toFixed(1);
+                  const rpMin = Math.min(...rpVals).toFixed(1);
+                  const rpMax = Math.max(...rpVals).toFixed(1);
+                  const ciMean = mean(ciVals).toFixed(1);
+                  const solMin = Math.min(...solVals).toFixed(1);
+                  const solMax = Math.max(...solVals).toFixed(1);
+                  const MAX_VISIBLE = 12;
+                  const visible = siblings.slice(0, MAX_VISIBLE);
+                  const hidden = siblings.length - visible.length;
+                  return (
+                    <>
+                      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-3">
+                        <div className="text-sm">
+                          <span className="text-gray-500">RID:</span>{' '}
+                          <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{attr.rid}</span>
+                        </div>
+                        <div className="text-sm text-gray-700 dark:text-gray-300">{n} banks on this reach</div>
+                        <div className="text-sm text-gray-700 dark:text-gray-300">
+                          This bank ranks <strong>#{myRpRank} of {n}</strong> by RP Final
+                          <span className="mx-2 text-gray-400">·</span>
+                          <strong>#{myCiRank} of {n}</strong> by Composite Index
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 50px 1fr 50px 170px', columnGap: 16, rowGap: 6, fontSize: 12, alignItems: 'center', marginBottom: 10 }}>
+                        <div className="text-gray-400" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>BID</div>
+                        <div className="text-gray-400" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>RP Final</div>
+                        <div className="text-gray-400 text-right" style={{ fontSize: 10, fontWeight: 600 }}></div>
+                        <div className="text-gray-400" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Solar Push</div>
+                        <div className="text-gray-400 text-right" style={{ fontSize: 10, fontWeight: 600 }}></div>
+                        <div className="text-gray-400" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aspect → Factor</div>
+                        {visible.map(s => {
+                          const isCurrent = s.bid === selectedBID;
+                          const rpPct = Math.min(100, Math.max(0, s.rpf || 0));
+                          const solPct = Math.min(100, Math.max(0, (s.sol || 0) / 12 * 100));
+                          const af = s.af ?? 0;
+                          const tag = af > 0.05 ? 'boost' : af < -0.05 ? 'reduction' : 'neutral';
+                          const tagColor = af > 0.05 ? '#16a34a' : af < -0.05 ? '#dc2626' : '#6b7280';
+                          const aspText = s.asp != null
+                            ? `${aspectCompass(s.asp)} ${s.asp.toFixed(0)}° · ${af >= 0 ? '+' : ''}${af.toFixed(2)}`
+                            : '—';
+                          return (
+                            <React.Fragment key={s.bid}>
+                              <div className="font-mono"
+                                style={isCurrent
+                                  ? { fontWeight: 700, color: '#1193BA', background: '#E9F6F9', padding: '2px 6px', borderRadius: 3 }
+                                  : { color: '#1193BA', cursor: 'pointer', textDecoration: 'underline' }}
+                                onClick={isCurrent ? undefined : () => selectBID(s.bid)}
+                                title={isCurrent ? 'Current bank' : `Click to view ${s.bid}`}>
+                                {s.bid}
+                                {isCurrent && <span style={{ marginLeft: 6, fontSize: 10, color: '#6b7280', fontWeight: 400 }}>← this bank</span>}
+                              </div>
+                              <div style={{ height: 12, background: '#f3f4f6', borderRadius: 3, position: 'relative', overflow: 'hidden' }}>
+                                <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${rpPct}%`, background: isCurrent ? '#F9A134' : '#1193BA', transition: 'width 0.2s' }}></div>
+                              </div>
+                              <div className="font-mono text-right text-gray-700 dark:text-gray-300">{(s.rpf || 0).toFixed(1)}</div>
+                              <div style={{ height: 12, background: '#f3f4f6', borderRadius: 3, position: 'relative', overflow: 'hidden' }}>
+                                <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${solPct}%`, background: '#fb923c', transition: 'width 0.2s' }}></div>
+                              </div>
+                              <div className="font-mono text-right text-gray-700 dark:text-gray-300">{(s.sol || 0).toFixed(1)}</div>
+                              <div style={{ fontSize: 11 }}>
+                                <span className="font-mono text-gray-700 dark:text-gray-300">{aspText}</span>
+                                {s.asp != null && (
+                                  <span style={{ marginLeft: 6, color: tagColor, fontSize: 10, fontWeight: 600 }}>({tag})</span>
+                                )}
+                              </div>
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                      {hidden > 0 && (
+                        <div className="text-xs text-gray-400 italic mb-2">+ {hidden} more bank{hidden > 1 ? 's' : ''} on this reach (not shown — top {MAX_VISIBLE} by RP Final shown)</div>
+                      )}
+                      {waterbodyBids.length > 0 && (
+                        <div className="pt-3 mt-2 border-t dark:border-gray-700">
+                          <div className="text-xs text-gray-500 mb-2 font-medium">
+                            In-Channel BIDs on this reach
+                            <span className="ml-1 text-gray-400 font-normal italic">
+                              · filtered from scoring · {waterbodyBids.length} BID{waterbodyBids.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 70px 80px', columnGap: 16, rowGap: 6, fontSize: 12, alignItems: 'center', marginBottom: 8 }}>
+                            <div className="text-gray-400" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>BID</div>
+                            <div className="text-gray-400" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Landcover</div>
+                            <div className="text-gray-400 text-right" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Acres</div>
+                            <div className="text-gray-400" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Type</div>
+                            {waterbodyBids.map(wb => {
+                              const acres = wb.sqft ? (wb.sqft / 43560).toFixed(2) : '—';
+                              return (
+                                <React.Fragment key={wb.bid}>
+                                  <div className="font-mono text-gray-500 dark:text-gray-400" title={`In-channel BID — not scored (PositionWaterbody == 'Waterbody')`}>
+                                    {wb.bid}
+                                    <span style={{ marginLeft: 6, fontSize: 9, color: '#9ca3af', fontStyle: 'italic' }}>in-channel</span>
+                                  </div>
+                                  <div style={{ display: 'flex', height: 12, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}
+                                    title={LAB_LC_KEYS.map((k, i) => wb.lc[i] > 0.005 ? `${k}: ${(wb.lc[i] * 100).toFixed(0)}%` : null).filter(Boolean).join(' · ')}>
+                                    {wb.lc.map((p, i) => p > 0.005 ? (
+                                      <div key={i} style={{ width: `${p * 100}%`, background: LAB_LC_FILLS[i], height: '100%' }}></div>
+                                    ) : null)}
+                                  </div>
+                                  <div className="font-mono text-right text-gray-700 dark:text-gray-300">{acres}</div>
+                                  <div className="text-gray-700 dark:text-gray-300" style={{ textTransform: 'capitalize' }}>{wb.wt || '—'}</div>
+                                </React.Fragment>
+                              );
+                            })}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500" style={{ fontSize: 10 }}>
+                            <span>Legend:</span>
+                            {LAB_LC_KEYS.map((k, i) => (
+                              <span key={k} className="flex items-center gap-1">
+                                <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: LAB_LC_FILLS[i] }}></span>
+                                <span>{k}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 pt-3 mt-2 border-t dark:border-gray-700">
+                        Reach mean RP <strong className="text-gray-700 dark:text-gray-300">{rpMean}</strong>
+                        <span className="mx-2 text-gray-400">·</span>
+                        RP range <strong className="text-gray-700 dark:text-gray-300">{rpMin}–{rpMax}</strong>
+                        <span className="mx-2 text-gray-400">·</span>
+                        CI mean <strong className="text-gray-700 dark:text-gray-300">{ciMean}</strong>
+                        <span className="mx-2 text-gray-400">·</span>
+                        Solar Push range <strong className="text-gray-700 dark:text-gray-300">{solMin}–{solMax}</strong>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -5587,7 +5549,7 @@ Default Moderate curve:
             <MH4>Grouping Variables</MH4>
             <p>BIDs can be grouped by several attributes to focus analysis on management-relevant subsets:</p>
             <ul className="list-disc pl-6 space-y-1">
-              <li><strong>Fish presence</strong> — Gradient-accessible reaches are identified using the WDFW slope/distance model, which estimates where salmon could access based on stream gradient alone, independent of known fish passage barriers. Chinook-bearing reaches are the primary focus given their ESA listing and central role in WRIA 1 recovery planning <CiteRef id="wria1_recovery_2005" /> <CiteRef id="srfb_2019" />; all other salmon-accessible reaches form lower priorities.</li>
+              <li><strong>Fish presence</strong> — Gradient-accessible reaches are identified using the WDFW slope/distance model, which estimates where salmon could access based on stream gradient alone, independent of known fish passage barriers. Early (Spring) Chinook-bearing reaches are the primary focus given their ESA listing and central role in WRIA 1 recovery planning <CiteRef id="wria1_recovery_2005" /> <CiteRef id="srfb_2019" />; all other salmon-accessible reaches form lower priorities.</li>
               <li><strong>Stream region</strong> — North Fork, Middle Fork, South Fork, Mainstem, and tributary groupings that align with SRST management units.</li>
               <li><strong>Land manager</strong> — Ownership from <MLink href="https://www.usgs.gov/programs/gap-analysis-project/science/pad-us-data-overview">USGS PAD-US</MLink> and land use from county comprehensive plans/zoning.</li>
               <li><strong>Bankfull width class</strong> — Modeled bankfull width from <CiteRef id="davies_bfw" />, classified into Headwater/Ditch, Small, Medium, Large, and Mainstem size classes.</li>
@@ -5779,7 +5741,7 @@ Default Moderate curve:
         { name: 'Tree Red Fall',           mdi: 0.0541, mda: 7,  cat: 'reflect' },
         { name: 'Tree Fall NIR \u0394',    mdi: 0.0283, mda: 10, cat: 'reflect' },
         { name: 'Tree NIR',               mdi: 0.0275, mda: 9,  cat: 'reflect' },
-        { name: 'Tree Canopy Ht',         mdi: 0.0263, mda: 8,  cat: 'lidar' },
+        { name: 'Tree Canopy Height',     mdi: 0.0263, mda: 8,  cat: 'lidar' },
         { name: 'Tree RelPeak7 \u03c3',   mdi: 0.0244, mda: 15, cat: 'lidar' },
         { name: 'Canopy Height',           mdi: 0.0232, mda: 12, cat: 'lidar' },
         { name: 'Slope',                   mdi: 0.0205, mda: 16, cat: 'terrain' },
@@ -6212,6 +6174,15 @@ Default Moderate curve:
       addCatSet('tic', f.selTcat, f._labels?.tcat || []);
       addCatSet('fic', f.selFcat, f._labels?.fcat || []);
       addCatSet('sic', f.selScat, f._labels?.scat || []);
+      // Waterbody type: SQLite stores raw values 'river'/'lake'/'' but UI shows 'Active Channel'/'Lake'/'Tributary'.
+      // Translate selected display labels back to raw values for the IN clause.
+      const WT_RAW_MAP = { 'Active Channel': 'river', 'Tributary': '', 'Lake': 'lake' };
+      if (!f.selWT || f.selWT.size === 0) {
+        clauses.push('0');
+      } else if (f.selWT.size < 3) {
+        const raws = [...f.selWT].map(lbl => WT_RAW_MAP[lbl] ?? '');
+        clauses.push(`(wt IS NOT NULL AND wt IN (${raws.map(esc).join(',')}))`);
+      }
       addRange('rpf', f.rRPF);
       addRange('rpa', f.rRPA);
       addRange('mc', f.rComp);
@@ -6224,6 +6195,8 @@ Default Moderate curve:
       addRange('ph', f.rPH);
       // pctRest = pf + ps + ph (computed)
       clauses.push(`MIN(100, ROUND(pf + ps + ph)) >= ${+f.rRest[0]} AND MIN(100, ROUND(pf + ps + ph)) <= ${+f.rRest[1]}`);
+      // Composite Index (CI = rpsf * rpsa / 100): filter on the same expression used as the default sort
+      clauses.push(`ROUND(rpsf * rpsa / 100.0, 1) >= ${+f.rCI[0]} AND ROUND(rpsf * rpsa / 100.0, 1) <= ${+f.rCI[1]}`);
       return clauses.length ? clauses.join(' AND ') : '1';
     }
 
@@ -6326,6 +6299,10 @@ Default Moderate curve:
       const [selTcat, setSelTcat] = React.useState(null);  // Temperature impairment cat
       const [selFcat, setSelFcat] = React.useState(null);  // Fecal impairment cat
       const [selScat, setSelScat] = React.useState(null);  // Sediment impairment cat
+      const [selWT, setSelWT] = React.useState(null);      // Waterbody type (Active Channel / Trib / Lake)
+      const WT_LABELS = ['Active Channel', 'Tributary', 'Lake'];
+      // Translate display labels back to the raw `wt` column values stored in SQLite
+      const WT_LABEL_TO_RAW = { 'Active Channel': 'river', 'Tributary': '', 'Lake': 'lake' };
       const SALMON_SPECIES = [
         'Spring Chinook', 'Fall Chinook', 'Coho',
         'Summer Steelhead', 'Winter Steelhead', 'Fall Chum',
@@ -6357,6 +6334,7 @@ Default Moderate curve:
         setSelTcat(prev => prev || new Set(labelSets.tcat));
         setSelFcat(prev => prev || new Set(labelSets.fcat));
         setSelScat(prev => prev || new Set(labelSets.scat));
+        setSelWT(prev => prev || new Set(WT_LABELS));
         // Auto-apply initial (all-selected) filters
         setAppliedFilters(prev => prev || {
           selTier: new Set(labelSets.tier), selChk: new Set(labelSets.chk),
@@ -6367,9 +6345,10 @@ Default Moderate curve:
           selSpecies: new Set(labelSets.species),
           selTcat: new Set(labelSets.tcat), selFcat: new Set(labelSets.fcat),
           selScat: new Set(labelSets.scat),
+          selWT: new Set(WT_LABELS),
           rRPF: [0, 100], rRPA: [0, 100], rComp: [-1, 1], rCH: [0, 300],
           rSol: [0, 12], rSlp: [0, 5], rWet: [0, 5],
-          rPF: [0, 100], rPS: [0, 100], rPH: [0, 100], rRest: [0, 100],
+          rPF: [0, 100], rPS: [0, 100], rPH: [0, 100], rRest: [0, 100], rCI: [0, 100],
           _labels: labelSets,
         });
       }, [labelSets]);
@@ -6389,6 +6368,7 @@ Default Moderate curve:
       const [rPS, setRPS] = React.useState([0, 100]);
       const [rPH, setRPH] = React.useState([0, 100]);
       const [rRest, setRRest] = React.useState([0, 100]);
+      const [rCI, setRCI] = React.useState([0, 100]);
 
       // --- Table sort + page state ---
       const [sortCol, setSortCol] = React.useState('ci');
@@ -6497,34 +6477,38 @@ Default Moderate curve:
           setEq(selHmz, f.selHmz) && setEq(selSal, f.selSal) &&
           setEq(selSpecies, f.selSpecies) &&
           setEq(selTcat, f.selTcat) && setEq(selFcat, f.selFcat) && setEq(selScat, f.selScat) &&
+          setEq(selWT, f.selWT) &&
           arrEq(rRPF, f.rRPF) && arrEq(rRPA, f.rRPA) && arrEq(rComp, f.rComp) &&
           arrEq(rCH, f.rCH) && arrEq(rSol, f.rSol) && arrEq(rSlp, f.rSlp) &&
           arrEq(rWet, f.rWet) && arrEq(rPF, f.rPF) && arrEq(rPS, f.rPS) &&
-          arrEq(rPH, f.rPH) && arrEq(rRest, f.rRest)
+          arrEq(rPH, f.rPH) && arrEq(rRest, f.rRest) && arrEq(rCI, f.rCI)
         );
       }, [appliedFilters, selTier, selChk, selFish, selSrz, selMgr, selZon, selBfw, selHmz,
-          selSal, selSpecies, selTcat, selFcat, selScat,
-          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest]);
+          selSal, selSpecies, selTcat, selFcat, selScat, selWT,
+          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest, rCI]);
 
       // --- Per-section active filter badge counts (renders as a number on the section header) ---
       const bidBadges = React.useMemo(() => {
         const cat = (sel, labels) => (sel && sel.size !== (labels?.length || 0)) ? 1 : 0;
+        const catLen = (sel, len) => (sel && sel.size !== len) ? 1 : 0;
         const rng = (val, lo, hi) => (val[0] !== lo || val[1] !== hi) ? 1 : 0;
         return {
           metrics: cat(selTier, labelSets.tier) +
                    rng(rRPF, 0, 100) + rng(rRPA, 0, 100) + rng(rComp, -1, 1) +
                    rng(rCH, 0, 300) + rng(rSol, 0, 12) + rng(rSlp, 0, 5) + rng(rWet, 0, 5) +
-                   rng(rPF, 0, 100) + rng(rPS, 0, 100) + rng(rPH, 0, 100) + rng(rRest, 0, 100),
+                   rng(rPF, 0, 100) + rng(rPS, 0, 100) + rng(rPH, 0, 100) + rng(rRest, 0, 100) +
+                   rng(rCI, 0, 100),
           fishSalmon: cat(selChk, labelSets.chk) + cat(selFish, labelSets.fish) +
                       cat(selSal, labelSets.sal) + cat(selSpecies, labelSets.species),
           impairment: cat(selTcat, labelSets.tcat) + cat(selFcat, labelSets.fcat) + cat(selScat, labelSets.scat),
           river: (selBufZone.size !== 5 ? 1 : 0) + cat(selHmz, labelSets.hmz) +
-                 cat(selBfw, labelSets.bfw) + cat(selSrz, labelSets.srz),
+                 cat(selBfw, labelSets.bfw) + cat(selSrz, labelSets.srz) +
+                 catLen(selWT, 3),
           admin: cat(selMgr, labelSets.mgr) + cat(selZon, labelSets.zon),
         };
       }, [labelSets, selTier, selChk, selFish, selSal, selSpecies, selTcat, selFcat, selScat,
-          selHmz, selBfw, selSrz, selMgr, selZon, selBufZone,
-          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest]);
+          selHmz, selBfw, selSrz, selMgr, selZon, selBufZone, selWT,
+          rRPF, rRPA, rComp, rCH, rSol, rSlp, rWet, rPF, rPS, rPH, rRest, rCI]);
 
       // --- Apply filters handler ---
       const applyFilters = () => {
@@ -6536,9 +6520,10 @@ Default Moderate curve:
           selHmz: new Set(selHmz), selSal: new Set(selSal),
           selSpecies: new Set(selSpecies),
           selTcat: new Set(selTcat), selFcat: new Set(selFcat), selScat: new Set(selScat),
+          selWT: new Set(selWT),
           rRPF: [...rRPF], rRPA: [...rRPA], rComp: [...rComp], rCH: [...rCH],
           rSol: [...rSol], rSlp: [...rSlp], rWet: [...rWet],
-          rPF: [...rPF], rPS: [...rPS], rPH: [...rPH], rRest: [...rRest],
+          rPF: [...rPF], rPS: [...rPS], rPH: [...rPH], rRest: [...rRest], rCI: [...rCI],
           _labels: labelSets,
         });
       };
@@ -6564,10 +6549,12 @@ Default Moderate curve:
           setSelSpecies(new Set(labelSets.species));
           setSelTcat(new Set(labelSets.tcat)); setSelFcat(new Set(labelSets.fcat));
           setSelScat(new Set(labelSets.scat));
+          setSelWT(new Set(WT_LABELS));
         }
         setRRPF([0, 100]); setRRPA([0, 100]); setRComp([-1, 1]); setRCH([0, 300]);
         setRSol([0, 12]); setRSlp([0, 5]); setRWet([0, 5]);
         setRPF([0, 100]); setRPS([0, 100]); setRPH([0, 100]); setRRest([0, 100]);
+        setRCI([0, 100]);
         setAppliedFilters({
           selTier: new Set(labelSets.tier), selChk: new Set(labelSets.chk),
           selFish: new Set(labelSets.fish),
@@ -6577,9 +6564,10 @@ Default Moderate curve:
           selSpecies: new Set(labelSets.species),
           selTcat: new Set(labelSets.tcat), selFcat: new Set(labelSets.fcat),
           selScat: new Set(labelSets.scat),
+          selWT: new Set(WT_LABELS),
           rRPF: [0, 100], rRPA: [0, 100], rComp: [-1, 1], rCH: [0, 300],
           rSol: [0, 12], rSlp: [0, 5], rWet: [0, 5],
-          rPF: [0, 100], rPS: [0, 100], rPH: [0, 100], rRest: [0, 100],
+          rPF: [0, 100], rPS: [0, 100], rPH: [0, 100], rRest: [0, 100], rCI: [0, 100],
           _labels: labelSets,
         });
       };
@@ -6588,18 +6576,16 @@ Default Moderate curve:
       const COLUMNS = [
         { key: 'bid', label: 'BID', w: 80, fmt: v => v },
         { key: 'str', label: 'Stream', w: 100, fmt: v => v || '\u2014' },
-        { key: 'rpf', label: 'RP', w: 42, fmt: v => v?.toFixed(1) },
-        { key: 'rpa', label: 'Area RP', w: 52, fmt: v => v?.toFixed(1) },
-        { key: 'ci', label: 'CI', w: 42, fmt: v => v?.toFixed(1) },
+        { key: 'rpf', label: 'RP Final', w: 60, fmt: v => v?.toFixed(1) },
+        { key: 'rpa', label: 'Area RP Percentile', w: 90, fmt: v => v?.toFixed(1) },
+        { key: 'ci', label: 'Composite Index', w: 80, fmt: v => v?.toFixed(1) },
         { key: 'tier', label: 'Tier', w: 38, fmt: v => v },
-        { key: 'srz', label: 'SR Zone', w: 90, fmt: v => v },
+        { key: 'srz', label: 'Stream Region Zone', w: 110, fmt: v => v },
         { key: 'compDesc', label: 'Composition', w: 90, fmt: v => v },
-        { key: 'mh', label: 'Canopy Ht', w: 55, fmt: v => v > 0 ? v?.toFixed(0) + ' ft' : '\u2014' },
-        { key: 'pf', label: '% For', w: 40, fmt: v => v?.toFixed(0) },
-        { key: 'sol', label: 'Solar', w: 42, fmt: v => v?.toFixed(1) },
-        { key: 'tic', label: 'Temp', w: 42, fmt: v => v ? `Cat ${v}` : '\u2014' },
-        { key: 'fic', label: 'Fecal', w: 42, fmt: v => v ? `Cat ${v}` : '\u2014' },
-        { key: 'sic', label: 'Sed', w: 42, fmt: v => v ? `Cat ${v}` : '\u2014' },
+        { key: 'mh', label: 'Canopy Height', w: 75, fmt: v => v > 0 ? v?.toFixed(0) + ' ft' : '\u2014' },
+        { key: 'pf', label: '% Forest', w: 60, fmt: v => v?.toFixed(0) },
+        { key: 'sol', label: 'Solar Push', w: 60, fmt: v => v?.toFixed(1) },
+        { key: 'tic', label: 'Temperature Impaired', w: 95, fmt: v => v ? `Category ${v}` : '\u2014' },
         { key: 'sps', label: 'Salmon Species', w: 160, fmt: v => v || '\u2014' },
         { key: 'mgr', label: 'Owner', w: 80, fmt: v => v },
       ];
@@ -6746,9 +6732,9 @@ Default Moderate curve:
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
                 <DualRangeSlider label="RP Final" min={0} max={100} step={1} value={rRPF} onChange={setRRPF} fmt={v => v.toFixed(0)} />
-                <DualRangeSlider label="Area RP %ile" min={0} max={100} step={1} value={rRPA} onChange={setRRPA} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Area RP Percentile" min={0} max={100} step={1} value={rRPA} onChange={setRRPA} fmt={v => v.toFixed(0)} />
                 <DualRangeSlider label="Composition" min={-1} max={1} step={0.05} value={rComp} onChange={setRComp} fmt={v => v.toFixed(2)} />
-                <DualRangeSlider label="Canopy Ht (ft)" min={0} max={300} step={5} value={rCH} onChange={setRCH} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Canopy Height (ft)" min={0} max={300} step={5} value={rCH} onChange={setRCH} fmt={v => v.toFixed(0)} />
                 <DualRangeSlider label="Solar Push" min={0} max={12} step={0.5} value={rSol} onChange={setRSol} fmt={v => v.toFixed(1)} />
                 <DualRangeSlider label="Slope Push" min={0} max={5} step={0.25} value={rSlp} onChange={setRSlp} fmt={v => v.toFixed(1)} />
                 <DualRangeSlider label="Wetland Push" min={0} max={5} step={0.25} value={rWet} onChange={setRWet} fmt={v => v.toFixed(1)} />
@@ -6756,6 +6742,7 @@ Default Moderate curve:
                 <DualRangeSlider label="% Shrub" min={0} max={100} step={1} value={rPS} onChange={setRPS} fmt={v => v.toFixed(0)} />
                 <DualRangeSlider label="% Herb/Ground" min={0} max={100} step={1} value={rPH} onChange={setRPH} fmt={v => v.toFixed(0)} />
                 <DualRangeSlider label="% Restorable" min={0} max={100} step={1} value={rRest} onChange={setRRest} fmt={v => v.toFixed(0)} />
+                <DualRangeSlider label="Composite Index" min={0} max={100} step={1} value={rCI} onChange={setRCI} fmt={v => v.toFixed(0)} />
               </div>
             </CollapsibleSection>
 
@@ -6813,7 +6800,10 @@ Default Moderate curve:
                 </div>
                 <FilterGroup title="Historic Migration Zone (HMZ)" labels={labelSets.hmz || []} colors={{ 'Y': '#f59e0b', 'N': '#6b7280' }} selected={selHmz} setSelected={setSelHmz} />
                 <FilterGroup title="Bankfull Width (BfW)" labels={labelSets.bfw || []} colors={BFW_COLORS} selected={selBfw} setSelected={setSelBfw} />
-                <FilterGroup title="Stream Region Zone (SR Zone)" labels={labelSets.srz || []} colors={SR_ZONE_COLORS} selected={selSrz} setSelected={setSelSrz} />
+                <FilterGroup title="Waterbody Type" labels={WT_LABELS} colors={{ 'Active Channel': '#1193BA', 'Tributary': '#66CAD8', 'Lake': '#0ea5e9' }} selected={selWT || new Set(WT_LABELS)} setSelected={setSelWT} />
+                <div className="md:col-span-2">
+                  <FilterGroup title="Stream Region Zone (SR Zone)" labels={labelSets.srz || []} colors={SR_ZONE_COLORS} selected={selSrz} setSelected={setSelSrz} />
+                </div>
               </div>
             </CollapsibleSection>
 
@@ -6920,9 +6910,9 @@ Default Moderate curve:
       { id: 'data_summary', label: 'Data Summary' },
       { id: 'scores', label: 'Score Distributions' },
       { id: 'zones', label: 'Zone & BID Analysis' },
-      { id: 'composition', label: 'Composition' },
+      { id: 'composition', label: 'Landcover & Composition' },
       { id: 'radar', label: 'Radar Profiles' },
-      { id: 'chinook', label: 'Chinook & Fish' },
+      { id: 'chinook', label: 'Early Chinook & Fish' },
       { id: 'sr_zones', label: 'SR Zones' },
       { id: 'managers', label: 'Manager' },
       { id: 'bfw', label: 'BFW & River Size' },
