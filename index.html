@@ -6704,7 +6704,8 @@ Default Moderate curve:
         const header = cols.map(c => c.hdr).join(',');
         const rows = filtered.map(b => cols.map(c => esc(b[c.key])).join(','));
         const csv = [header, ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
+        // Prepend UTF-8 BOM (U+FEFF) so Excel reads it as UTF-8 (otherwise em-dashes etc. show as mojibake)
+        const blob = new Blob([String.fromCharCode(0xFEFF) + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = 'bid_query_export.csv'; a.click();
